@@ -31,7 +31,9 @@ onSnapshot(docRef, (docSnap) => {
     if (docSnap.exists()) {
         dadosGlobais = docSnap.data();
         renderizarPainel();
-        if (!document.getElementById('view-tv').classList.contains('hidden') && playerTv) {
+        
+        // Se a tela da TV estiver aberta, atualiza o player horizontal ao trocar de canal na nuvem
+        if (!document.getElementById('view-tv').classList.contains('hidden') && playerTv && typeof playerTv.loadVideoById === 'function') {
             const currentVideoId = playerTv.getVideoData ? playerTv.getVideoData().video_id : '';
             if (currentVideoId && currentVideoId !== dadosGlobais.ativoHorizontal) {
                 playerTv.loadVideoById(dadosGlobais.ativoHorizontal);
@@ -50,7 +52,7 @@ async function salvarNoFirebase(dados) {
     }
 }
 
-// Expõe funções globalmente para funcionarem nos botões HTML onclick="..."
+// Expõe funções globalmente para os botões do HTML
 window.mudarAba = function(aba) {
     const viewPainel = document.getElementById('view-painel');
     const viewTv = document.getElementById('view-tv');
@@ -64,8 +66,8 @@ window.mudarAba = function(aba) {
         viewTv.classList.add('hidden');
         viewPainel.classList.remove('hidden');
         if (timerVerificacao) clearInterval(timerVerificacao);
-        if (playerTv) playerTv.destroy();
-        if (playerProp) playerProp.destroy();
+        if (playerTv && typeof playerTv.destroy === 'function') playerTv.destroy();
+        if (playerProp && typeof playerProp.destroy === 'function') playerProp.destroy();
         renderizarPainel();
     }
 };
@@ -73,7 +75,14 @@ window.mudarAba = function(aba) {
 window.iniciarTransmissaoComSom = function() {
     const modalSom = document.getElementById('modal-ativar-som');
     if (modalSom) modalSom.classList.add('hidden');
-    iniciarPlayersAPI();
+    
+    // Garante que a API do YouTube carregou antes de instanciar os players
+    if (window.YT && window.YT.Player) {
+        iniciarPlayersAPI();
+    } else {
+        // Se a API ainda estiver carregando, aguarda um segundo
+        setTimeout(iniciarPlayersAPI, 1000);
+    }
 };
 
 function extrairIdYoutube(urlOuId) {
@@ -223,9 +232,10 @@ function renderizarPainel() {
 }
 
 function iniciarPlayersAPI() {
-    if (playerTv) playerTv.destroy();
-    if (playerProp) playerProp.destroy();
+    if (playerTv && typeof playerTv.destroy === 'function') playerTv.destroy();
+    if (playerProp && typeof playerProp.destroy === 'function') playerProp.destroy();
 
+    // Cria o player da TV ao vivo
     playerTv = new YT.Player('yt-player-tv', {
         height: '100%',
         width: '100%',
@@ -247,6 +257,7 @@ function iniciarPlayersAPI() {
         }
     });
 
+    // Cria o player das propagandas verticais
     if (dadosGlobais.sequenciaProps.length > 0) {
         const idsPlaylist = dadosGlobais.sequenciaProps.map(p => p.id);
         indicePropAtual = 0;
