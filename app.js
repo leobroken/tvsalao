@@ -8,11 +8,12 @@ const dadosPadrao = {
     sequenciaProps: [
         { id: "jfKfPfyJRdk", nome: "Propaganda Padrão (Exemplo)" }
     ],
-    ativoHorizontal: "jfKfPfyJRdk"
+    ativoHorizontal: "jfKfPfyJRdk",
+    comSom: false // Por padrão inicia mudo para evitar bloqueio do navegador
 };
 
 function carregarDados() {
-    const salvo = localStorage.getItem('tv_salao_dados_v3');
+    const salvo = localStorage.getItem('tv_salao_dados_v4');
     if (salvo) {
         return JSON.parse(salvo);
     }
@@ -20,7 +21,7 @@ function carregarDados() {
 }
 
 function salvarDados(dados) {
-    localStorage.setItem('tv_salao_dados_v3', JSON.stringify(dados));
+    localStorage.setItem('tv_salao_dados_v4', JSON.stringify(dados));
 }
 
 function mudarAba(aba) {
@@ -49,6 +50,46 @@ function extrairIdYoutube(urlOuId) {
         }
     }
     return id;
+}
+
+// Controle de Som
+function alternarSomPainel() {
+    const dados = carregarDados();
+    dados.comSom = !dados.comSom;
+    salvarDados(dados);
+    atualizarBotaoSom();
+}
+
+function alternarSomNaTela() {
+    const dados = carregarDados();
+    dados.comSom = !dados.comSom;
+    salvarDados(dados);
+    atualizarBotaoSom();
+    iniciarPlayers(); // Recarrega o player aplicando o novo estado de som
+}
+
+function atualizarBotaoSom() {
+    const dados = carregarDados();
+    const btnPainel = document.getElementById('btn-toggle-som');
+    const btnTela = document.getElementById('btn-som-tela');
+
+    if (dados.comSom) {
+        if (btnPainel) {
+            btnPainel.className = "px-5 py-2.5 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white transition shadow";
+            btnPainel.innerText = "🔊 Som Ligado";
+        }
+        if (btnTela) {
+            btnTela.innerText = "🔊 Som: Ligado";
+        }
+    } else {
+        if (btnPainel) {
+            btnPainel.className = "px-5 py-2.5 rounded-xl font-bold text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 transition shadow";
+            btnPainel.innerText = "🔇 Som Mudo";
+        }
+        if (btnTela) {
+            btnTela.innerText = "🔇 Som: Mudo";
+        }
+    }
 }
 
 // Canais
@@ -111,7 +152,7 @@ function removerPropagandaBiblioteca(index) {
     renderizarPainel();
 }
 
-// Montagem da Sequência
+// Sequência
 function adicionarNaSequencia(id, nome) {
     const dados = carregarDados();
     dados.sequenciaProps.push({ id: id, nome: nome });
@@ -129,18 +170,18 @@ function removerDaSequencia(index) {
 function salvarSequencia() {
     const dados = carregarDados();
     if (dados.sequenciaProps.length === 0) {
-        alert('A sequência está vazia! Adicione ao menos um vídeo.');
+        alert('A sequência está vazia!');
         return;
     }
     salvarDados(dados);
-    alert('Sequência de propagandas salva com sucesso!');
+    alert('Sequência salva com sucesso!');
 }
 
-// Renderização do Painel de Controle
 function renderizarPainel() {
+    atualizarBotaoSom();
     const dados = carregarDados();
 
-    // 1. Lista de Canais
+    // Canais
     const containerCanais = document.getElementById('lista-canais');
     containerCanais.innerHTML = dados.canais.length === 0 ? '<p class="text-xs text-gray-500 italic">Nenhum canal.</p>' : '';
     dados.canais.forEach((canal, index) => {
@@ -158,9 +199,9 @@ function renderizarPainel() {
         `;
     });
 
-    // 2. Biblioteca de Propagandas
+    // Biblioteca de Propagandas
     const containerBib = document.getElementById('lista-biblioteca-props');
-    containerBib.innerHTML = dados.bibliotecaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Nenhuma propaganda cadastrada.</p>' : '';
+    containerBib.innerHTML = dados.bibliotecaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Nenhuma propaganda.</p>' : '';
     dados.bibliotecaProps.forEach((prop, index) => {
         containerBib.innerHTML += `
             <div class="flex items-center justify-between bg-gray-950 border border-gray-800 p-2.5 rounded-xl text-xs">
@@ -170,23 +211,21 @@ function renderizarPainel() {
         `;
     });
 
-    // 3. Seletor para adicionar na Sequência
+    // Seletor Sequência
     const containerSeletor = document.getElementById('seletor-adicionar-sequencia');
-    containerSeletor.innerHTML = dados.bibliotecaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Cadastre propagandas acima primeiro.</p>' : '';
+    containerSeletor.innerHTML = dados.bibliotecaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Cadastre propagandas acima.</p>' : '';
     dados.bibliotecaProps.forEach((prop) => {
         containerSeletor.innerHTML += `
             <div class="flex items-center justify-between bg-gray-900 border border-gray-800 p-2.5 rounded-xl text-xs">
                 <span class="truncate mr-2">${prop.nome}</span>
-                <button onclick="adicionarNaSequencia('${prop.id}', '${prop.nome}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded font-bold shrink-0">
-                    ➕ Adicionar
-                </button>
+                <button onclick="adicionarNaSequencia('${prop.id}', '${prop.nome}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded font-bold shrink-0">➕ Adicionar</button>
             </div>
         `;
     });
 
-    // 4. Sequência Atual
+    // Sequência Atual
     const containerSeq = document.getElementById('lista-sequencia-atual');
-    containerSeq.innerHTML = dados.sequenciaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Sequência vazia. Adicione itens ao lado.</p>' : '';
+    containerSeq.innerHTML = dados.sequenciaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Sequência vazia.</p>' : '';
     dados.sequenciaProps.forEach((prop, index) => {
         containerSeq.innerHTML += `
             <div class="flex items-center justify-between bg-gray-900 border border-gray-800 p-2.5 rounded-xl text-xs">
@@ -200,23 +239,22 @@ function renderizarPainel() {
     });
 }
 
-// Iniciar players na Tela da TV com rotação automática via Playlist do YouTube
+// Iniciar Players respeitando o estado do som (mute=0 ou mute=1)
 function iniciarPlayers() {
     const dados = carregarDados();
+    const muteParam = dados.comSom ? "0" : "1";
 
-    // Player Horizontal (TV ao Vivo)
+    // Player Horizontal (TV ao Vivo) - As propagandas verticais sempre entram mudas (`mute=1`) para não embolar o áudio do salão
     const containerH = document.getElementById('player-horizontal-container');
     containerH.innerHTML = `
         <iframe class="w-full h-full pointer-events-none rounded-xl" 
-            src="https://www.youtube.com/embed/${dados.ativoHorizontal}?autoplay=1&mute=1&loop=1&playlist=${dados.ativoHorizontal}&controls=0&disablekb=1&modestbranding=1" 
+            src="https://www.youtube.com/embed/${dados.ativoHorizontal}?autoplay=1&mute=${muteParam}&loop=1&playlist=${dados.ativoHorizontal}&controls=0&disablekb=1&modestbranding=1" 
             title="TV ao Vivo" frameborder="0" 
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
             allowfullscreen>
         </iframe>
     `;
 
-    // Player Vertical (Propagandas em Playlist Rotativa)
-    // Extrai todos os IDs da sequência salva e junta por vírgulas para o YouTube rodar em loop sequencial
     const idsPlaylist = dados.sequenciaProps.map(p => p.id).join(',');
     const primeiroId = dados.sequenciaProps.length > 0 ? dados.sequenciaProps[0].id : "jfKfPfyJRdk";
 
