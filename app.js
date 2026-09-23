@@ -245,10 +245,17 @@ function renderizarPainel() {
     }
 }
 
-// Inicialização dos Players via API do YouTube
+// Inicialização dos Players via API do YouTube com suporte a Shorts
 function iniciarPlayersAPI() {
     if (playerTv) playerTv.destroy();
     if (playerProp) playerProp.destroy();
+
+    // Garante que os containers internos existam antes de instanciar os players
+    const containerTv = document.getElementById('player-horizontal-container');
+    if (containerTv) containerTv.innerHTML = '<div id="yt-player-tv"></div>';
+
+    const containerProp = document.getElementById('player-vertical-container');
+    if (containerProp) containerProp.innerHTML = '<div id="yt-player-prop"></div>';
 
     // 1. Player TV ao Vivo (Horizontal)
     playerTv = new YT.Player('yt-player-tv', {
@@ -272,7 +279,7 @@ function iniciarPlayersAPI() {
         }
     });
 
-    // 2. Player Propagandas (Vertical)
+    // 2. Player Propagandas (Vertical - Compatível com Shorts e Vídeos Normais)
     if (dadosGlobais.sequenciaProps.length > 0) {
         const idsPlaylist = dadosGlobais.sequenciaProps.map(p => p.id);
         indicePropAtual = 0;
@@ -286,7 +293,8 @@ function iniciarPlayersAPI() {
                 'mute': 1,
                 'controls': 0,
                 'disablekb': 1,
-                'modestbranding': 1
+                'modestbranding': 1,
+                'playsinline': 1
             },
             events: {
                 'onReady': (event) => {
@@ -294,6 +302,7 @@ function iniciarPlayersAPI() {
                     aplicarRegraDeSomAtual();
                 },
                 'onStateChange': (event) => {
+                    // Quando o vídeo atual (seja Shorts ou comum) termina, avança para o próximo
                     if (event.data === YT.PlayerState.ENDED) {
                         indicePropAtual = (indicePropAtual + 1) % idsPlaylist.length;
                         playerProp.loadVideoById(idsPlaylist[indicePropAtual]);
