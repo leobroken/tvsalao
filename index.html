@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel - TV do Salão</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Carrega a API oficial do YouTube para controle avançado de áudio -->
     <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body class="bg-gray-950 text-white font-sans antialiased min-h-screen flex flex-col items-center p-6">
@@ -17,7 +16,6 @@
             <p class="text-sm text-gray-400">Gerencie canais, propagandas com som/mudo individual e a sequência da TV.</p>
         </div>
 
-        <!-- Botão principal para ir à tela da TV -->
         <div>
             <button onclick="mudarAba('tv')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition shadow-lg text-lg flex items-center justify-center space-x-2">
                 <span>🚀 Abrir Tela do Salão (TV)</span>
@@ -57,7 +55,6 @@
                     <input type="text" id="input-nome-prop" placeholder="Nome (Ex: Mega Hair Promo)" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-pink-500">
                     <input type="text" id="input-link-prop" placeholder="Link ou ID do YouTube" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-pink-500">
                     
-                    <!-- Opção de Som Individual -->
                     <div class="flex items-center space-x-3 bg-gray-950 border border-gray-800 p-3 rounded-xl">
                         <input type="checkbox" id="input-com-som-prop" class="w-4 h-4 accent-pink-600 rounded">
                         <label for="input-com-som-prop" class="text-xs text-gray-300 cursor-pointer">Ativar som desta propaganda (Corta o som da TV ao vivo durante ela)</label>
@@ -102,12 +99,23 @@
 
     <!-- TELA DA TV -->
     <main id="view-tv" class="hidden fixed inset-0 bg-black flex w-screen h-screen overflow-hidden">
-        <button onclick="mudarAba('painel')" class="absolute top-4 left-4 z-50 bg-black/75 hover:bg-black text-white/90 px-4 py-2 rounded-xl text-sm backdrop-blur border border-white/15 transition shadow-2xl">
+        
+        <!-- MODAL DE ATIVAÇÃO DE SOM (Exigido pelo navegador para destravar o áudio) -->
+        <div id="modal-ativar-som" class="absolute inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-6 space-y-4">
+            <div class="text-center space-y-2 max-w-md">
+                <h2 class="text-2xl font-bold text-emerald-400">📺 Pronto para iniciar a TV do Salão</h2>
+                <p class="text-sm text-gray-300">Para que o navegador permita que o som funcione corretamente, clique no botão abaixo para iniciar.</p>
+            </div>
+            <button onclick="iniciarTransmissaoComSom()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-4 rounded-2xl transition shadow-2xl text-lg flex items-center space-x-2">
+                <span>🔊 Iniciar Transmissão com Som</span>
+            </button>
+        </div>
+
+        <button onclick="mudarAba('painel')" class="absolute top-4 left-4 z-40 bg-black/75 hover:bg-black text-white/90 px-4 py-2 rounded-xl text-sm backdrop-blur border border-white/15 transition shadow-2xl">
             ⚙️ Voltar ao Painel
         </button>
 
-        <!-- Indicador de Status de Áudio na Tela -->
-        <div id="status-audio-tv" class="absolute top-4 right-4 z-50 bg-black/75 text-white/80 px-3 py-1.5 rounded-xl text-xs backdrop-blur border border-white/10 hidden">
+        <div id="status-audio-tv" class="absolute top-4 right-4 z-40 bg-black/75 text-white/80 px-3 py-1.5 rounded-xl text-xs backdrop-blur border border-white/10 hidden">
             🔊 TV ao Vivo com Som
         </div>
 
