@@ -12,7 +12,7 @@
     <main id="view-painel" class="max-w-3xl w-full space-y-8 pb-12">
         <div class="text-center space-y-2">
             <h1 class="text-3xl font-bold tracking-wide">📺 Painel de Controle - TV do Salão</h1>
-            <p class="text-sm text-gray-400">Gerencie seus canais de TV ao vivo e vídeos de propaganda.</p>
+            <p class="text-sm text-gray-400">Cadastre seus canais e propagandas. Eles ficam salvos em botões de acesso rápido.</p>
         </div>
 
         <!-- Botão principal para ir à tela da TV -->
@@ -31,17 +31,17 @@
 
             <!-- Formulário para Adicionar Canal -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <input type="text" id="input-nome-canal" placeholder="Nome do Canal (Ex: CNN Brasil)" class="bg-gray-950 border border-gray-800 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500">
+                <input type="text" id="input-nome-canal" placeholder="Nome do Canal (Ex: Rede Globo)" class="bg-gray-950 border border-gray-800 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500">
                 <input type="text" id="input-link-canal" placeholder="Link ou ID do YouTube" class="bg-gray-950 border border-gray-800 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500">
                 <button onclick="adicionarCanal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition shadow-md">
-                    ➕ Adicionar Canal
+                    ➕ Salvar Canal
                 </button>
             </div>
 
-            <!-- Lista de Canais Pré-salvos -->
-            <div>
-                <h3 class="text-sm font-medium text-gray-400 mb-3">Canais Salvos (Clique para ativar na TV):</h3>
-                <div id="lista-canais" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- Lista de Canais Salvos (Em formato de botões/cartões) -->
+            <div class="space-y-3">
+                <h3 class="text-sm font-medium text-gray-400">Canais Salvos:</h3>
+                <div id="lista-canais" class="grid grid-cols-1 gap-3">
                     <!-- Gerado via JS -->
                 </div>
             </div>
@@ -56,17 +56,17 @@
 
             <!-- Formulário para Adicionar Propaganda -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <input type="text" id="input-nome-prop" placeholder="Nome (Ex: Mega Hair Promo)" class="bg-gray-950 border border-gray-800 rounded-xl p-3 text-white focus:outline-none focus:border-pink-500">
+                <input type="text" id="input-nome-prop" placeholder="Nome (Ex: Promoção Mega Hair)" class="bg-gray-950 border border-gray-800 rounded-xl p-3 text-white focus:outline-none focus:border-pink-500">
                 <input type="text" id="input-link-prop" placeholder="Link ou ID do YouTube" class="bg-gray-950 border border-gray-800 rounded-xl p-3 text-white focus:outline-none focus:border-pink-500">
-                <button onclick="adicionarPropaganda()" class="bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 rounded-xl transition shadow-md">
-                    ➕ Adicionar Propaganda
+                <button onclick="adicionarPropaganda()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition shadow-md">
+                    ➕ Salvar Propaganda
                 </button>
             </div>
 
-            <!-- Lista de Propagandas Pré-salvas -->
-            <div>
-                <h3 class="text-sm font-medium text-gray-400 mb-3">Propagandas Salvas (Clique para ativar na TV):</h3>
-                <div id="lista-propagandas" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- Lista de Propagandas Salvas (Em formato de botões/cartões) -->
+            <div class="space-y-3">
+                <h3 class="text-sm font-medium text-gray-400">Propagandas Salvas:</h3>
+                <div id="lista-propagandas" class="grid grid-cols-1 gap-3">
                     <!-- Gerado via JS -->
                 </div>
             </div>
@@ -79,7 +79,7 @@
             ⚙️ Voltar ao Painel
         </button>
 
-        <!-- Lado Esquerdo: Player Horizontal (Canal de TV Ativo) -->
+        <!-- Lado Esquerdo: Player Horizontal (Canal Ativo) -->
         <div class="flex-1 h-full bg-black flex items-center justify-center relative">
             <div id="player-horizontal-container" class="w-full h-full"></div>
         </div>
