@@ -9,6 +9,7 @@
     <meta name="theme-color" content="#030712">
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- API do YouTube -->
     <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body class="bg-gray-950 text-white font-sans antialiased min-h-screen flex flex-col items-center p-6">
@@ -121,12 +122,14 @@
             🔊 TV ao Vivo com Som
         </div>
 
+        <!-- Lado Esquerdo: Área Principal da TV -->
         <div class="flex-1 h-full bg-black flex items-center justify-center p-2 relative">
             <div id="player-horizontal-container" class="w-full h-full flex items-center justify-center">
                 <div id="yt-player-tv"></div>
             </div>
         </div>
 
+        <!-- Lado Direito: Área de Propaganda -->
         <div class="w-[320px] lg:w-[360px] h-full bg-zinc-950 border-l border-zinc-900 flex flex-col items-center justify-center relative p-2">
             <div id="player-vertical-container" class="w-full h-full flex items-center justify-center">
                 <div id="yt-player-prop"></div>
@@ -134,17 +137,16 @@
         </div>
     </main>
 
-    <!-- Script para registrar o Service Worker do PWA -->
+    <!-- Registro do PWA -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then((reg) => console.log('Service Worker registrado com sucesso!', reg))
-                    .catch((err) => console.log('Erro ao registrar Service Worker:', err));
+                navigator.serviceWorker.register('./sw.js').catch(() => {});
             });
         }
     </script>
 
+    <!-- Script principal com type="module" obrigatório para o Firebase -->
     <script type="module" src="app.js"></script>
 </body>
 </html>
