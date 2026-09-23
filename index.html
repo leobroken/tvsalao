@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel - TV do Salão</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Carrega a API oficial do YouTube para controle avançado de áudio -->
+    <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body class="bg-gray-950 text-white font-sans antialiased min-h-screen flex flex-col items-center p-6">
 
@@ -12,7 +14,7 @@
     <main id="view-painel" class="max-w-4xl w-full space-y-8 pb-12">
         <div class="text-center space-y-2">
             <h1 class="text-3xl font-bold tracking-wide">📺 Painel de Controle - TV do Salão</h1>
-            <p class="text-sm text-gray-400">Gerencie canais, propagandas, sequência e o som da TV.</p>
+            <p class="text-sm text-gray-400">Gerencie canais, propagandas com som/mudo individual e a sequência da TV.</p>
         </div>
 
         <!-- Botão principal para ir à tela da TV -->
@@ -21,19 +23,6 @@
                 <span>🚀 Abrir Tela do Salão (TV)</span>
             </button>
         </div>
-
-        <!-- NOVO: CONFIGURAÇÃO DE ÁUDIO -->
-        <section class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-xl flex items-center justify-between">
-            <div>
-                <h2 class="text-lg font-semibold text-yellow-400">🔊 Configuração de Áudio (Canal ao Vivo)</h2>
-                <p class="text-xs text-gray-400 mt-1">Escolha se o canal de TV ao vivo inicia com som ou mudo.</p>
-            </div>
-            <div class="flex items-center space-x-3">
-                <button id="btn-toggle-som" onclick="alternarSomPainel()" class="px-5 py-2.5 rounded-xl font-bold text-sm transition shadow">
-                    Carregando...
-                </button>
-            </div>
-        </section>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- SEÇÃO 1: CANAIS DE TV -->
@@ -67,12 +56,19 @@
                 <div class="space-y-3">
                     <input type="text" id="input-nome-prop" placeholder="Nome (Ex: Mega Hair Promo)" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-pink-500">
                     <input type="text" id="input-link-prop" placeholder="Link ou ID do YouTube" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-pink-500">
+                    
+                    <!-- Opção de Som Individual -->
+                    <div class="flex items-center space-x-3 bg-gray-950 border border-gray-800 p-3 rounded-xl">
+                        <input type="checkbox" id="input-com-som-prop" class="w-4 h-4 accent-pink-600 rounded">
+                        <label for="input-com-som-prop" class="text-xs text-gray-300 cursor-pointer">Ativar som desta propaganda (Corta o som da TV ao vivo durante ela)</label>
+                    </div>
+
                     <button onclick="adicionarPropaganda()" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-2.5 rounded-xl transition text-sm">
                         ➕ Cadastrar Propaganda
                     </button>
                 </div>
 
-                <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
                     <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wider">Vídeos Cadastrados:</h3>
                     <div id="lista-biblioteca-props" class="space-y-2"></div>
                 </div>
@@ -106,24 +102,27 @@
 
     <!-- TELA DA TV -->
     <main id="view-tv" class="hidden fixed inset-0 bg-black flex w-screen h-screen overflow-hidden">
-        <!-- Controles flutuantes no canto superior esquerdo -->
-        <div class="absolute top-4 left-4 z-50 flex items-center space-x-2">
-            <button onclick="mudarAba('painel')" class="bg-black/75 hover:bg-black text-white/90 px-4 py-2 rounded-xl text-sm backdrop-blur border border-white/15 transition shadow-2xl">
-                ⚙️ Voltar ao Painel
-            </button>
-            <button id="btn-som-tela" onclick="alternarSomNaTela()" class="bg-black/75 hover:bg-black text-white/90 px-4 py-2 rounded-xl text-sm backdrop-blur border border-white/15 transition shadow-2xl">
-                🔊 Som: Mudo
-            </button>
+        <button onclick="mudarAba('painel')" class="absolute top-4 left-4 z-50 bg-black/75 hover:bg-black text-white/90 px-4 py-2 rounded-xl text-sm backdrop-blur border border-white/15 transition shadow-2xl">
+            ⚙️ Voltar ao Painel
+        </button>
+
+        <!-- Indicador de Status de Áudio na Tela -->
+        <div id="status-audio-tv" class="absolute top-4 right-4 z-50 bg-black/75 text-white/80 px-3 py-1.5 rounded-xl text-xs backdrop-blur border border-white/10 hidden">
+            🔊 TV ao Vivo com Som
         </div>
 
         <!-- Lado Esquerdo: Área Principal da TV -->
         <div class="flex-1 h-full bg-black flex items-center justify-center p-2 relative">
-            <div id="player-horizontal-container" class="w-full h-full flex items-center justify-center"></div>
+            <div id="player-horizontal-container" class="w-full h-full flex items-center justify-center">
+                <div id="yt-player-tv"></div>
+            </div>
         </div>
 
         <!-- Lado Direito: Área de Propaganda -->
         <div class="w-[320px] lg:w-[360px] h-full bg-zinc-950 border-l border-zinc-900 flex flex-col items-center justify-center relative p-2">
-            <div id="player-vertical-container" class="w-full h-full flex items-center justify-center"></div>
+            <div id="player-vertical-container" class="w-full h-full flex items-center justify-center">
+                <div id="yt-player-prop"></div>
+            </div>
         </div>
     </main>
 
