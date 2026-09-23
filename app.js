@@ -1,24 +1,15 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-const firebaseConfig = {
-    apiKey: "AIzaSyBoZ-MT_xyvnuV_-JEA9BP@vqpv-AgMJ3o",
-    authDomain: "tv-salao-359c2.firebaseapp.com",
-    projectId: "tv-salao-359c2",
-    storageBucket: "tv-salao-359c2.firebasestorage.app",
-    messagingSenderId: "675609854274",
-    appId: "1:675609854274:web:c81a874cc6399ddb0848db"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const docRef = doc(db, "configuracoes", "tv_salao");
-
-let dadosGlobais = {
-    canais: [{ id: "jfKfPfyJRdk", nome: "Canal Padrão (Exemplo)" }],
-    bibliotecaProps: [{ id: "jfKfPfyJRdk", nome: "Propaganda Padrão", comSom: false }],
-    sequenciaProps: [{ id: "jfKfPfyJRdk", nome: "Propaganda Padrão", comSom: false }],
-    ativoHorizontal: "jfKfPfyJRdk"
+const dadosPadrao = {
+    canais: [
+        { id: "jfKfPfyJRdk", nome: "Canal Padrão (Exemplo)" }
+    ],
+    bibliotecaProps: [
+        { id: "jfKfPfyJRdk", nome: "Propaganda Padrão", comSom: false }
+    ],
+    sequenciaProps: [
+        { id: "jfKfPfyJRdk", nome: "Propaganda Padrão", comSom: false }
+    ],
+    ativoHorizontal: "jfKfPfyJRdk",
+    comSom: false
 };
 
 let playerTv = null;
@@ -26,34 +17,19 @@ let playerProp = null;
 let indicePropAtual = 0;
 let timerVerificacao = null;
 
-// Escuta alterações no Firebase em tempo real
-onSnapshot(docRef, (docSnap) => {
-    if (docSnap.exists()) {
-        dadosGlobais = docSnap.data();
-        renderizarPainel();
-        
-        // Se a tela da TV estiver aberta, atualiza o player horizontal ao trocar de canal na nuvem
-        if (!document.getElementById('view-tv').classList.contains('hidden') && playerTv && typeof playerTv.loadVideoById === 'function') {
-            const currentVideoId = playerTv.getVideoData ? playerTv.getVideoData().video_id : '';
-            if (currentVideoId && currentVideoId !== dadosGlobais.ativoHorizontal) {
-                playerTv.loadVideoById(dadosGlobais.ativoHorizontal);
-            }
-        }
-    } else {
-        salvarNoFirebase(dadosGlobais);
+function carregarDados() {
+    const salvo = localStorage.getItem('tv_salao_dados_v5');
+    if (salvo) {
+        return JSON.parse(salvo);
     }
-});
-
-async function salvarNoFirebase(dados) {
-    try {
-        await setDoc(docRef, dados);
-    } catch (e) {
-        console.error("Erro ao salvar no Firestore: ", e);
-    }
+    return dadosPadrao;
 }
 
-// Expõe funções globalmente para os botões do HTML
-window.mudarAba = function(aba) {
+function salvarDados(dados) {
+    localStorage.setItem('tv_salao_dados_v5', JSON.stringify(dados));
+}
+
+function mudarAba(aba) {
     const viewPainel = document.getElementById('view-painel');
     const viewTv = document.getElementById('view-tv');
     const modalSom = document.getElementById('modal-ativar-som');
@@ -66,28 +42,32 @@ window.mudarAba = function(aba) {
         viewTv.classList.add('hidden');
         viewPainel.classList.remove('hidden');
         if (timerVerificacao) clearInterval(timerVerificacao);
-        if (playerTv && typeof playerTv.destroy === 'function') playerTv.destroy();
-        if (playerProp && typeof playerProp.destroy === 'function') playerProp.destroy();
+        if (playerTv) playerTv.destroy();
+        if (playerProp) playerProp.destroy();
         renderizarPainel();
     }
-};
+}
 
-window.iniciarTransmissaoComSom = function() {
+function iniciarTransmissaoComSom() {
     const modalSom = document.getElementById('modal-ativar-som');
     if (modalSom) modalSom.classList.add('hidden');
-    
-    // Garante que a API do YouTube carregou antes de instanciar os players
-    if (window.YT && window.YT.Player) {
-        iniciarPlayersAPI();
-    } else {
-        // Se a API ainda estiver carregando, aguarda um segundo
-        setTimeout(iniciarPlayersAPI, 1000);
-    }
-};
 
+    iniciarPlayersAPI();
+}
+
+// Extração robusta para links normais, curtos e de Transmissões ao Vivo (/live/)
 function extrairIdYoutube(urlOuId) {
     if (!urlOuId) return '';
     let id = urlOuId.trim();
+    
+    // Suporte a links de live do tipo youtube.com/live/ID_DO_VIDEO
+    if (id.includes('/live/')) {
+        const partes = id.split('/live/');
+        if (partes[1]) {
+            return partes[1].split('?')[0].split('/')[0];
+        }
+    }
+    
     if (id.includes('youtube.com') || id.includes('youtu.be')) {
         const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
         const match = id.match(regExp);
@@ -98,7 +78,8 @@ function extrairIdYoutube(urlOuId) {
     return id;
 }
 
-window.adicionarCanal = function() {
+// Canais
+function adicionarCanal() {
     const nome = document.getElementById('input-nome-canal').value.trim();
     const link = document.getElementById('input-link-canal').value.trim();
 
@@ -107,24 +88,32 @@ window.adicionarCanal = function() {
         return;
     }
 
-    dadosGlobais.canais.push({ id: extrairIdYoutube(link), nome: nome });
-    salvarNoFirebase(dadosGlobais);
+    const dados = carregarDados();
+    dados.canais.push({ id: extrairIdYoutube(link), nome: nome });
+    salvarDados(dados);
 
     document.getElementById('input-nome-canal').value = '';
     document.getElementById('input-link-canal').value = '';
-};
+    renderizarPainel();
+}
 
-window.removerCanal = function(index) {
-    dadosGlobais.canais.splice(index, 1);
-    salvarNoFirebase(dadosGlobais);
-};
+function removerCanal(index) {
+    const dados = carregarDados();
+    dados.canais.splice(index, 1);
+    salvarDados(dados);
+    renderizarPainel();
+}
 
-window.selecionarCanalAtivo = function(id) {
-    dadosGlobais.ativoHorizontal = id;
-    salvarNoFirebase(dadosGlobais);
-};
+function selecionarCanalAtivo(id) {
+    const dados = carregarDados();
+    dados.ativoHorizontal = id;
+    salvarDados(dados);
+    renderizarPainel();
+    alert('Canal definido na TV!');
+}
 
-window.adicionarPropaganda = function() {
+// Biblioteca de Propagandas
+function adicionarPropaganda() {
     const nome = document.getElementById('input-nome-prop').value.trim();
     const link = document.getElementById('input-link-prop').value.trim();
     const comSom = document.getElementById('input-com-som-prop').checked;
@@ -134,45 +123,56 @@ window.adicionarPropaganda = function() {
         return;
     }
 
-    dadosGlobais.bibliotecaProps.push({ id: extrairIdYoutube(link), nome: nome, comSom: comSom });
-    salvarNoFirebase(dadosGlobais);
+    const dados = carregarDados();
+    dados.bibliotecaProps.push({ id: extrairIdYoutube(link), nome: nome, comSom: comSom });
+    salvarDados(dados);
 
     document.getElementById('input-nome-prop').value = '';
     document.getElementById('input-link-prop').value = '';
     document.getElementById('input-com-som-prop').checked = false;
-};
+    renderizarPainel();
+}
 
-window.removerPropagandaBiblioteca = function(index) {
-    dadosGlobais.bibliotecaProps.splice(index, 1);
-    salvarNoFirebase(dadosGlobais);
-};
+function removerPropagandaBiblioteca(index) {
+    const dados = carregarDados();
+    dados.bibliotecaProps.splice(index, 1);
+    salvarDados(dados);
+    renderizarPainel();
+}
 
-window.adicionarNaSequencia = function(id, nome, comSom) {
-    dadosGlobais.sequenciaProps.push({ id: id, nome: nome, comSom: comSom });
-    salvarNoFirebase(dadosGlobais);
-};
+// Sequência
+function adicionarNaSequencia(id, nome, comSom) {
+    const dados = carregarDados();
+    dados.sequenciaProps.push({ id: id, nome: nome, comSom: comSom });
+    salvarDados(dados);
+    renderizarPainel();
+}
 
-window.removerDaSequencia = function(index) {
-    dadosGlobais.sequenciaProps.splice(index, 1);
-    salvarNoFirebase(dadosGlobais);
-};
+function removerDaSequencia(index) {
+    const dados = carregarDados();
+    dados.sequenciaProps.splice(index, 1);
+    salvarDados(dados);
+    renderizarPainel();
+}
 
-window.salvarSequencia = function() {
-    if (dadosGlobais.sequenciaProps.length === 0) {
+function salvarSequencia() {
+    const dados = carregarDados();
+    if (dados.sequenciaProps.length === 0) {
         alert('A sequência está vazia!');
         return;
     }
-    salvarNoFirebase(dadosGlobais);
-    alert('Sequência salva na nuvem com sucesso!');
-};
+    salvarDados(dados);
+    alert('Sequência salva com sucesso!');
+}
 
 function renderizarPainel() {
-    const containerCanais = document.getElementById('lista-canais');
-    if (!containerCanais) return;
+    const dados = carregarDados();
 
-    containerCanais.innerHTML = dadosGlobais.canais.length === 0 ? '<p class="text-xs text-gray-500 italic">Nenhum canal.</p>' : '';
-    dadosGlobais.canais.forEach((canal, index) => {
-        const ativo = dadosGlobais.ativoHorizontal === canal.id;
+    // Canais
+    const containerCanais = document.getElementById('lista-canais');
+    containerCanais.innerHTML = dados.canais.length === 0 ? '<p class="text-xs text-gray-500 italic">Nenhum canal.</p>' : '';
+    dados.canais.forEach((canal, index) => {
+        const ativo = dados.ativoHorizontal === canal.id;
         containerCanais.innerHTML += `
             <div class="flex items-center justify-between bg-gray-950 border ${ativo ? 'border-blue-500 bg-blue-950/20' : 'border-gray-800'} p-2.5 rounded-xl text-xs">
                 <span class="font-medium truncate mr-2">${canal.nome}</span>
@@ -186,9 +186,10 @@ function renderizarPainel() {
         `;
     });
 
+    // Biblioteca de Propagandas
     const containerBib = document.getElementById('lista-biblioteca-props');
-    containerBib.innerHTML = dadosGlobais.bibliotecaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Nenhuma propaganda.</p>' : '';
-    dadosGlobais.bibliotecaProps.forEach((prop, index) => {
+    containerBib.innerHTML = dados.bibliotecaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Nenhuma propaganda.</p>' : '';
+    dados.bibliotecaProps.forEach((prop, index) => {
         containerBib.innerHTML += `
             <div class="flex items-center justify-between bg-gray-950 border border-gray-800 p-2.5 rounded-xl text-xs">
                 <div class="truncate mr-2">
@@ -200,9 +201,10 @@ function renderizarPainel() {
         `;
     });
 
+    // Seletor Sequência
     const containerSeletor = document.getElementById('seletor-adicionar-sequencia');
-    containerSeletor.innerHTML = dadosGlobais.bibliotecaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Cadastre propagandas acima.</p>' : '';
-    dadosGlobais.bibliotecaProps.forEach((prop) => {
+    containerSeletor.innerHTML = dados.bibliotecaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Cadastre propagandas acima.</p>' : '';
+    dados.bibliotecaProps.forEach((prop) => {
         const comSomStr = prop.comSom ? 'true' : 'false';
         containerSeletor.innerHTML += `
             <div class="flex items-center justify-between bg-gray-900 border border-gray-800 p-2.5 rounded-xl text-xs">
@@ -215,9 +217,10 @@ function renderizarPainel() {
         `;
     });
 
+    // Sequência Atual
     const containerSeq = document.getElementById('lista-sequencia-atual');
-    containerSeq.innerHTML = dadosGlobais.sequenciaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Sequência vazia.</p>' : '';
-    dadosGlobais.sequenciaProps.forEach((prop, index) => {
+    containerSeq.innerHTML = dados.sequenciaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Sequência vazia.</p>' : '';
+    dados.sequenciaProps.forEach((prop, index) => {
         containerSeq.innerHTML += `
             <div class="flex items-center justify-between bg-gray-900 border border-gray-800 p-2.5 rounded-xl text-xs">
                 <div class="flex items-center space-x-2 truncate mr-2">
@@ -231,15 +234,18 @@ function renderizarPainel() {
     });
 }
 
+// Inicialização dos Players via API do YouTube com liberação de som
 function iniciarPlayersAPI() {
-    if (playerTv && typeof playerTv.destroy === 'function') playerTv.destroy();
-    if (playerProp && typeof playerProp.destroy === 'function') playerProp.destroy();
+    const dados = carregarDados();
 
-    // Cria o player da TV ao vivo
+    if (playerTv) playerTv.destroy();
+    if (playerProp) playerProp.destroy();
+
+    // 1. Player TV ao Vivo (Horizontal)
     playerTv = new YT.Player('yt-player-tv', {
         height: '100%',
         width: '100%',
-        videoId: dadosGlobais.ativoHorizontal,
+        videoId: dados.ativoHorizontal,
         playerVars: {
             'autoplay': 1,
             'mute': 0,
@@ -247,7 +253,7 @@ function iniciarPlayersAPI() {
             'disablekb': 1,
             'modestbranding': 1,
             'loop': 1,
-            'playlist': dadosGlobais.ativoHorizontal
+            'playlist': dados.ativoHorizontal
         },
         events: {
             'onReady': (event) => {
@@ -257,9 +263,9 @@ function iniciarPlayersAPI() {
         }
     });
 
-    // Cria o player das propagandas verticais
-    if (dadosGlobais.sequenciaProps.length > 0) {
-        const idsPlaylist = dadosGlobais.sequenciaProps.map(p => p.id);
+    // 2. Player Propagandas (Vertical)
+    if (dados.sequenciaProps.length > 0) {
+        const idsPlaylist = dados.sequenciaProps.map(p => p.id);
         indicePropAtual = 0;
 
         playerProp = new YT.Player('yt-player-prop', {
@@ -298,9 +304,10 @@ function iniciarPlayersAPI() {
 }
 
 function aplicarRegraDeSomAtual() {
-    if (!dadosGlobais.sequenciaProps || dadosGlobais.sequenciaProps.length === 0) return;
+    const dados = carregarDados();
+    if (!dados.sequenciaProps || dados.sequenciaProps.length === 0) return;
 
-    const propAtual = dadosGlobais.sequenciaProps[indicePropAtual];
+    const propAtual = dados.sequenciaProps[indicePropAtual];
     const indicador = document.getElementById('status-audio-tv');
 
     if (propAtual && propAtual.comSom) {
@@ -318,3 +325,11 @@ function aplicarRegraDeSomAtual() {
         }
     }
 }
+
+function onYouTubeIframeAPIReady() {
+    // Pronto
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    renderizarPainel();
+});
