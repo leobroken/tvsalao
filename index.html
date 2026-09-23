@@ -9,10 +9,10 @@
 <body class="bg-gray-950 text-white font-sans antialiased min-h-screen flex flex-col items-center p-6">
 
     <!-- PAINEL DE CONTROLE -->
-    <main id="view-painel" class="max-w-3xl w-full space-y-8 pb-12">
+    <main id="view-painel" class="max-w-4xl w-full space-y-8 pb-12">
         <div class="text-center space-y-2">
             <h1 class="text-3xl font-bold tracking-wide">📺 Painel de Controle - TV do Salão</h1>
-            <p class="text-sm text-gray-400">Cadastre seus canais e propagandas. Eles ficam salvos em botões de acesso rápido.</p>
+            <p class="text-sm text-gray-400">Gerencie canais, propagandas e monte a sequência personalizada que vai rodar na TV.</p>
         </div>
 
         <!-- Botão principal para ir à tela da TV -->
@@ -22,52 +22,84 @@
             </button>
         </div>
 
-        <!-- SEÇÃO 1: CANAIS DE TV -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- SEÇÃO 1: CANAIS DE TV -->
+            <section class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-xl space-y-6">
+                <div class="flex justify-between items-center border-b border-gray-800 pb-4">
+                    <h2 class="text-lg font-semibold text-blue-400">📺 Canais de TV ao Vivo</h2>
+                    <span class="text-xs bg-blue-950 text-blue-300 px-2.5 py-1 rounded-full border border-blue-800">Horizontal</span>
+                </div>
+
+                <div class="space-y-3">
+                    <input type="text" id="input-nome-canal" placeholder="Nome do Canal (Ex: CNN)" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
+                    <input type="text" id="input-link-canal" placeholder="Link ou ID do YouTube" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
+                    <button onclick="adicionarCanal()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl transition text-sm">
+                        ➕ Salvar Canal
+                    </button>
+                </div>
+
+                <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wider">Canais Salvos:</h3>
+                    <div id="lista-canais" class="space-y-2"></div>
+                </div>
+            </section>
+
+            <!-- SEÇÃO 2: BIBLIOTECA DE PROPAGANDAS -->
+            <section class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-xl space-y-6">
+                <div class="flex justify-between items-center border-b border-gray-800 pb-4">
+                    <h2 class="text-lg font-semibold text-pink-400">🎬 Biblioteca de Propagandas</h2>
+                    <span class="text-xs bg-pink-950 text-pink-300 px-2.5 py-1 rounded-full border border-pink-800">Vertical</span>
+                </div>
+
+                <div class="space-y-3">
+                    <input type="text" id="input-nome-prop" placeholder="Nome (Ex: Mega Hair Promo)" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-pink-500">
+                    <input type="text" id="input-link-prop" placeholder="Link ou ID do YouTube" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-pink-500">
+                    <button onclick="adicionarPropaganda()" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-2.5 rounded-xl transition text-sm">
+                        ➕ Cadastrar Propaganda
+                    </button>
+                </div>
+
+                <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wider">Vídeos Cadastrados:</h3>
+                    <div id="lista-biblioteca-props" class="space-y-2"></div>
+                </div>
+            </section>
+        </div>
+
+        <!-- SEÇÃO 3: MONTAGEM DA SEQUÊNCIA / PLAYLIST DE PROPAGANDAS -->
         <section class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-xl space-y-6">
             <div class="flex justify-between items-center border-b border-gray-800 pb-4">
-                <h2 class="text-xl font-semibold text-blue-400">📺 Canais de TV ao Vivo</h2>
-                <span class="text-xs bg-blue-950 text-blue-300 px-2.5 py-1 rounded-full border border-blue-800">Horizontal</span>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <input type="text" id="input-nome-canal" placeholder="Nome do Canal (Ex: Rede Globo)" class="bg-gray-950 border border-gray-800 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500">
-                <input type="text" id="input-link-canal" placeholder="Link ou ID do YouTube" class="bg-gray-950 border border-gray-800 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500">
-                <button onclick="adicionarCanal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition shadow-md">
-                    ➕ Salvar Canal
+                <div>
+                    <h2 class="text-xl font-semibold text-emerald-400">⚙️ Sequência de Exibição (Playlist Vertical)</h2>
+                    <p class="text-xs text-gray-400 mt-1">Monte a ordem em que as propagandas vão passar na TV. Você pode repetir o mesmo vídeo quantas vezes quiser.</p>
+                </div>
+                <button onclick="salvarSequencia()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2.5 rounded-xl transition text-sm shadow">
+                    💾 Salvar Sequência
                 </button>
             </div>
 
-            <div class="space-y-3">
-                <h3 class="text-sm font-medium text-gray-400">Canais Salvos:</h3>
-                <div id="lista-canais" class="grid grid-cols-1 gap-3"></div>
-            </div>
-        </section>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Esquerda: Clique para adicionar à sequência -->
+                <div class="space-y-3">
+                    <h3 class="text-sm font-medium text-gray-300">1. Clique para adicionar à sequência:</h3>
+                    <div id="seletor-adicionar-sequencia" class="space-y-2 bg-gray-950 p-4 rounded-xl border border-gray-800 max-h-72 overflow-y-auto">
+                        <!-- Gerado via JS -->
+                    </div>
+                </div>
 
-        <!-- SEÇÃO 2: PROPAGANDAS -->
-        <section class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-xl space-y-6">
-            <div class="flex justify-between items-center border-b border-gray-800 pb-4">
-                <h2 class="text-xl font-semibold text-pink-400">🎬 Vídeos de Propagandas</h2>
-                <span class="text-xs bg-pink-950 text-pink-300 px-2.5 py-1 rounded-full border border-pink-800">Vertical</span>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <input type="text" id="input-nome-prop" placeholder="Nome (Ex: Promoção Mega Hair)" class="bg-gray-950 border border-gray-800 rounded-xl p-3 text-white focus:outline-none focus:border-pink-500">
-                <input type="text" id="input-link-prop" placeholder="Link ou ID do YouTube" class="bg-gray-950 border border-gray-800 rounded-xl p-3 text-white focus:outline-none focus:border-pink-500">
-                <button onclick="adicionarPropaganda()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition shadow-md">
-                    ➕ Salvar Propaganda
-                </button>
-            </div>
-
-            <div class="space-y-3">
-                <h3 class="text-sm font-medium text-gray-400">Propagandas Salvas:</h3>
-                <div id="lista-propagandas" class="grid grid-cols-1 gap-3"></div>
+                <!-- Direita: Ordem atual da sequência -->
+                <div class="space-y-3">
+                    <h3 class="text-sm font-medium text-gray-300">2. Sequência Atual (Ordem de Reprodução):</h3>
+                    <div id="lista-sequencia-atual" class="space-y-2 bg-gray-950 p-4 rounded-xl border border-gray-800 max-h-72 overflow-y-auto">
+                        <!-- Gerado via JS -->
+                    </div>
+                </div>
             </div>
         </section>
     </main>
 
-    <!-- TELA DA TV (Layout Otimizado: TV Horizontal Dominante + Propaganda Vertical à Direita) -->
+    <!-- TELA DA TV -->
     <main id="view-tv" class="hidden fixed inset-0 bg-black flex w-screen h-screen overflow-hidden">
-        <!-- Botão flutuante para voltar ao painel -->
         <button onclick="mudarAba('painel')" class="absolute top-4 left-4 z-50 bg-black/75 hover:bg-black text-white/90 px-4 py-2 rounded-xl text-sm backdrop-blur border border-white/15 transition shadow-2xl">
             ⚙️ Voltar ao Painel
         </button>
@@ -77,7 +109,7 @@
             <div id="player-horizontal-container" class="w-full h-full flex items-center justify-center"></div>
         </div>
 
-        <!-- Lado Direito: Área de Propaganda (Vertical Compacta) -->
+        <!-- Lado Direito: Área de Propaganda (Vertical em Playlist Rotativa) -->
         <div class="w-[320px] lg:w-[360px] h-full bg-zinc-950 border-l border-zinc-900 flex flex-col items-center justify-center relative p-2">
             <div id="player-vertical-container" class="w-full h-full flex items-center justify-center"></div>
         </div>
