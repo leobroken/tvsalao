@@ -49,7 +49,6 @@ function extrairIdYoutube(urlOuId) {
     return id;
 }
 
-// Adicionar canal na lista salva
 function adicionarCanal() {
     const nome = document.getElementById('input-nome-canal').value.trim();
     const link = document.getElementById('input-link-canal').value.trim();
@@ -70,7 +69,6 @@ function adicionarCanal() {
     renderizarListas();
 }
 
-// Adicionar propaganda na lista salva
 function adicionarPropaganda() {
     const nome = document.getElementById('input-nome-prop').value.trim();
     const link = document.getElementById('input-link-prop').value.trim();
@@ -121,7 +119,6 @@ function selecionarPropAtiva(id) {
     alert('Propaganda selecionada como ativa na TV!');
 }
 
-// Renderiza os botões salvos na tela de controle
 function renderizarListas() {
     const dados = carregarDados();
 
@@ -180,13 +177,13 @@ function renderizarListas() {
     });
 }
 
-// Iniciar players na Tela da TV
+// Iniciar players preenchendo perfeitamente o layout
 function iniciarPlayers() {
     const dados = carregarDados();
 
     const containerH = document.getElementById('player-horizontal-container');
     containerH.innerHTML = `
-        <iframe class="w-full h-full pointer-events-none" 
+        <iframe class="w-full h-full pointer-events-none rounded-xl" 
             src="https://www.youtube.com/embed/${dados.ativoHorizontal}?autoplay=1&mute=1&loop=1&playlist=${dados.ativoHorizontal}&controls=0&disablekb=1&modestbranding=1" 
             title="TV ao Vivo" frameborder="0" 
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
@@ -196,7 +193,7 @@ function iniciarPlayers() {
 
     const containerV = document.getElementById('player-vertical-container');
     containerV.innerHTML = `
-        <iframe class="w-full h-full pointer-events-none" 
+        <iframe class="w-full h-full pointer-events-none rounded-xl" 
             src="https://www.youtube.com/embed/${dados.ativoVertical}?autoplay=1&mute=1&loop=1&playlist=${dados.ativoVertical}&controls=0&disablekb=1&modestbranding=1" 
             title="Propagandas" frameborder="0" 
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
