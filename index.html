@@ -12,7 +12,7 @@
     <main id="view-painel" class="max-w-4xl w-full space-y-8 pb-12">
         <div class="text-center space-y-2">
             <h1 class="text-3xl font-bold tracking-wide">📺 Painel de Controle - TV do Salão</h1>
-            <p class="text-sm text-gray-400">Gerencie canais, propagandas e monte a sequência personalizada que vai rodar na TV.</p>
+            <p class="text-sm text-gray-400">Gerencie canais, propagandas, sequência e o som da TV.</p>
         </div>
 
         <!-- Botão principal para ir à tela da TV -->
@@ -21,6 +21,19 @@
                 <span>🚀 Abrir Tela do Salão (TV)</span>
             </button>
         </div>
+
+        <!-- NOVO: CONFIGURAÇÃO DE ÁUDIO -->
+        <section class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-xl flex items-center justify-between">
+            <div>
+                <h2 class="text-lg font-semibold text-yellow-400">🔊 Configuração de Áudio (Canal ao Vivo)</h2>
+                <p class="text-xs text-gray-400 mt-1">Escolha se o canal de TV ao vivo inicia com som ou mudo.</p>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button id="btn-toggle-som" onclick="alternarSomPainel()" class="px-5 py-2.5 rounded-xl font-bold text-sm transition shadow">
+                    Carregando...
+                </button>
+            </div>
+        </section>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- SEÇÃO 1: CANAIS DE TV -->
@@ -66,12 +79,12 @@
             </section>
         </div>
 
-        <!-- SEÇÃO 3: MONTAGEM DA SEQUÊNCIA / PLAYLIST DE PROPAGANDAS -->
+        <!-- SEÇÃO 3: MONTAGEM DA SEQUÊNCIA -->
         <section class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-xl space-y-6">
             <div class="flex justify-between items-center border-b border-gray-800 pb-4">
                 <div>
                     <h2 class="text-xl font-semibold text-emerald-400">⚙️ Sequência de Exibição (Playlist Vertical)</h2>
-                    <p class="text-xs text-gray-400 mt-1">Monte a ordem em que as propagandas vão passar na TV. Você pode repetir o mesmo vídeo quantas vezes quiser.</p>
+                    <p class="text-xs text-gray-400 mt-1">Monte a ordem em que as propagandas vão passar na TV.</p>
                 </div>
                 <button onclick="salvarSequencia()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2.5 rounded-xl transition text-sm shadow">
                     💾 Salvar Sequência
@@ -79,20 +92,13 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Esquerda: Clique para adicionar à sequência -->
                 <div class="space-y-3">
                     <h3 class="text-sm font-medium text-gray-300">1. Clique para adicionar à sequência:</h3>
-                    <div id="seletor-adicionar-sequencia" class="space-y-2 bg-gray-950 p-4 rounded-xl border border-gray-800 max-h-72 overflow-y-auto">
-                        <!-- Gerado via JS -->
-                    </div>
+                    <div id="seletor-adicionar-sequencia" class="space-y-2 bg-gray-950 p-4 rounded-xl border border-gray-800 max-h-72 overflow-y-auto"></div>
                 </div>
-
-                <!-- Direita: Ordem atual da sequência -->
                 <div class="space-y-3">
-                    <h3 class="text-sm font-medium text-gray-300">2. Sequência Atual (Ordem de Reprodução):</h3>
-                    <div id="lista-sequencia-atual" class="space-y-2 bg-gray-950 p-4 rounded-xl border border-gray-800 max-h-72 overflow-y-auto">
-                        <!-- Gerado via JS -->
-                    </div>
+                    <h3 class="text-sm font-medium text-gray-300">2. Sequência Atual:</h3>
+                    <div id="lista-sequencia-atual" class="space-y-2 bg-gray-950 p-4 rounded-xl border border-gray-800 max-h-72 overflow-y-auto"></div>
                 </div>
             </div>
         </section>
@@ -100,16 +106,22 @@
 
     <!-- TELA DA TV -->
     <main id="view-tv" class="hidden fixed inset-0 bg-black flex w-screen h-screen overflow-hidden">
-        <button onclick="mudarAba('painel')" class="absolute top-4 left-4 z-50 bg-black/75 hover:bg-black text-white/90 px-4 py-2 rounded-xl text-sm backdrop-blur border border-white/15 transition shadow-2xl">
-            ⚙️ Voltar ao Painel
-        </button>
+        <!-- Controles flutuantes no canto superior esquerdo -->
+        <div class="absolute top-4 left-4 z-50 flex items-center space-x-2">
+            <button onclick="mudarAba('painel')" class="bg-black/75 hover:bg-black text-white/90 px-4 py-2 rounded-xl text-sm backdrop-blur border border-white/15 transition shadow-2xl">
+                ⚙️ Voltar ao Painel
+            </button>
+            <button id="btn-som-tela" onclick="alternarSomNaTela()" class="bg-black/75 hover:bg-black text-white/90 px-4 py-2 rounded-xl text-sm backdrop-blur border border-white/15 transition shadow-2xl">
+                🔊 Som: Mudo
+            </button>
+        </div>
 
-        <!-- Lado Esquerdo: Área Principal da TV (Horizontal Grande) -->
+        <!-- Lado Esquerdo: Área Principal da TV -->
         <div class="flex-1 h-full bg-black flex items-center justify-center p-2 relative">
             <div id="player-horizontal-container" class="w-full h-full flex items-center justify-center"></div>
         </div>
 
-        <!-- Lado Direito: Área de Propaganda (Vertical em Playlist Rotativa) -->
+        <!-- Lado Direito: Área de Propaganda -->
         <div class="w-[320px] lg:w-[360px] h-full bg-zinc-950 border-l border-zinc-900 flex flex-col items-center justify-center relative p-2">
             <div id="player-vertical-container" class="w-full h-full flex items-center justify-center"></div>
         </div>
