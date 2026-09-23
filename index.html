@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel da TV - Salão</title>
+    <!-- Tailwind CSS para estilização rápida -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-950 text-white font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- Header / Navegação Simples -->
+    <header class="bg-gray-900 border-b border-gray-800 p-4 flex justify-between items-center">
+        <h1 class="text-xl font-bold tracking-wide">📺 TV Salão - Painel</h1>
+        <div class="space-x-3">
+            <button onclick="mudarAba('painel')" id="btn-painel" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium transition">Painel de Controle</button>
+            <button onclick="mudarAba('tv')" id="btn-tv" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg font-medium transition">Abrir Tela da TV</button>
+        </div>
+    </header>
+
+    <!-- CONTEÚDO: PAINEL DE CONTROLE -->
+    <main id="view-painel" class="flex-1 p-6 max-w-4xl mx-auto w-full space-y-6">
+        <div class="bg-gray-900 border border-gray-800 p-6 rounded-xl shadow-lg">
+            <h2 class="text-lg font-semibold mb-4 text-blue-400">Configuração dos Players do YouTube</h2>
+            <p class="text-sm text-gray-400 mb-6">Insira os IDs ou URLs dos vídeos do YouTube. (Ex: se o link for `youtube.com/watch?v=XYZ123`, cole apenas `XYZ123`).</p>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Link/ID do Player Horizontal (TV ao Vivo / Fundo)</label>
+                    <input type="text" id="input-horizontal" placeholder="Ex: dQw4w9WgXcQ" class="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-1">Link/ID do Player Vertical (Propagandas / Shorts)</label>
+                    <input type="text" id="input-vertical" placeholder="Ex: jNQXAC9IVRw" class="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500">
+                </div>
+
+                <button onclick="salvarConfiguracoes()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition shadow-md">
+                    Salvar e Aplicar
+                </button>
+            </div>
+        </div>
+
+        <div class="text-center">
+            <button onclick="mudarAba('tv')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl transition shadow-lg text-lg">
+                🚀 Ir Direto para a Tela da TV
+            </button>
+        </div>
+    </main>
+
+    <!-- CONTEÚDO: TELA DA TV (Oculta por padrão até mudar de aba) -->
+    <main id="view-tv" class="hidden flex-1 bg-black flex overflow-hidden w-screen h-screen">
+        <!-- Lado Esquerdo: Player Horizontal (TV ao Vivo) -->
+        <div class="flex-1 h-full bg-black flex items-center justify-center relative">
+            <div id="player-horizontal-container" class="w-full h-full">
+                <!-- O Iframe será injetado via JavaScript -->
+            </div>
+        </div>
+
+        <!-- Lado Direito: Player Vertical (Propagandas) -->
+        <div class="w-[400px] h-full bg-zinc-900 border-l border-gray-800 flex items-center justify-center relative">
+            <div id="player-vertical-container" class="w-full h-full">
+                <!-- O Iframe será injetado via JavaScript -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Script da Aplicação -->
+    <script src="app.js"></script>
+</body>
+</html>
+
