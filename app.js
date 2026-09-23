@@ -74,6 +74,14 @@ function extrairIdYoutube(urlOuId) {
     if (!urlOuId) return '';
     let id = urlOuId.trim();
     
+    // Suporte a links de Shorts do YouTube (ex: youtube.com/shorts/ID)
+    if (id.includes('/shorts/')) {
+        const partes = id.split('/shorts/');
+        if (partes[1]) {
+            return partes[1].split('?')[0].split('/')[0];
+        }
+    }
+
     // Suporte a links de live do tipo youtube.com/live/ID_DO_VIDEO
     if (id.includes('/live/')) {
         const partes = id.split('/live/');
