@@ -6,51 +6,85 @@
     <title>Painel - TV do Salão</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-950 text-white font-sans antialiased min-h-screen flex flex-col items-center justify-center p-4">
+<body class="bg-gray-950 text-white font-sans antialiased min-h-screen flex flex-col items-center p-6">
 
-    <!-- PAINEL DE CONTROLE (Exibido por padrão) -->
-    <main id="view-painel" class="max-w-xl w-full space-y-6">
+    <!-- PAINEL DE CONTROLE -->
+    <main id="view-painel" class="max-w-3xl w-full space-y-8 pb-12">
         <div class="text-center space-y-2">
-            <h1 class="text-2xl font-bold tracking-wide">📺 Painel de Controle - TV do Salão</h1>
-            <p class="text-sm text-gray-400">Configure os vídeos que vão passar na TV do seu estabelecimento.</p>
+            <h1 class="text-3xl font-bold tracking-wide">📺 Painel de Controle - TV do Salão</h1>
+            <p class="text-sm text-gray-400">Gerencie seus canais de TV ao vivo e vídeos de propaganda.</p>
         </div>
 
-        <div class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-xl space-y-5">
-            <div>
-                <label class="block text-sm font-medium mb-1 text-gray-300">Link ou ID do Player Horizontal (TV ao Vivo / Fundo)</label>
-                <input type="text" id="input-horizontal" placeholder="Ex: dQw4w9WgXcQ" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500">
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium mb-1 text-gray-300">Link ou ID do Player Vertical (Propagandas / Shorts)</label>
-                <input type="text" id="input-vertical" placeholder="Ex: jNQXAC9IVRw" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500">
-            </div>
-
-            <button onclick="salvarConfiguracoes()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition shadow-md">
-                💾 Salvar Configurações
-            </button>
-        </div>
-
-        <div class="pt-2">
+        <!-- Botão principal para ir à tela da TV -->
+        <div>
             <button onclick="mudarAba('tv')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition shadow-lg text-lg flex items-center justify-center space-x-2">
-                <span>🎬 Abrir Tela do Salão</span>
+                <span>🚀 Abrir Tela do Salão (TV)</span>
             </button>
         </div>
+
+        <!-- SEÇÃO 1: CANAIS DE TV -->
+        <section class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-xl space-y-6">
+            <div class="flex justify-between items-center border-b border-gray-800 pb-4">
+                <h2 class="text-xl font-semibold text-blue-400">📺 Canais de TV ao Vivo</h2>
+                <span class="text-xs bg-blue-950 text-blue-300 px-2.5 py-1 rounded-full border border-blue-800">Horizontal</span>
+            </div>
+
+            <!-- Formulário para Adicionar Canal -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <input type="text" id="input-nome-canal" placeholder="Nome do Canal (Ex: CNN Brasil)" class="bg-gray-950 border border-gray-800 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500">
+                <input type="text" id="input-link-canal" placeholder="Link ou ID do YouTube" class="bg-gray-950 border border-gray-800 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500">
+                <button onclick="adicionarCanal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition shadow-md">
+                    ➕ Adicionar Canal
+                </button>
+            </div>
+
+            <!-- Lista de Canais Pré-salvos -->
+            <div>
+                <h3 class="text-sm font-medium text-gray-400 mb-3">Canais Salvos (Clique para ativar na TV):</h3>
+                <div id="lista-canais" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- Gerado via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- SEÇÃO 2: PROPAGANDAS -->
+        <section class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-xl space-y-6">
+            <div class="flex justify-between items-center border-b border-gray-800 pb-4">
+                <h2 class="text-xl font-semibold text-pink-400">🎬 Vídeos de Propagandas</h2>
+                <span class="text-xs bg-pink-950 text-pink-300 px-2.5 py-1 rounded-full border border-pink-800">Vertical</span>
+            </div>
+
+            <!-- Formulário para Adicionar Propaganda -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <input type="text" id="input-nome-prop" placeholder="Nome (Ex: Mega Hair Promo)" class="bg-gray-950 border border-gray-800 rounded-xl p-3 text-white focus:outline-none focus:border-pink-500">
+                <input type="text" id="input-link-prop" placeholder="Link ou ID do YouTube" class="bg-gray-950 border border-gray-800 rounded-xl p-3 text-white focus:outline-none focus:border-pink-500">
+                <button onclick="adicionarPropaganda()" class="bg-pink-600 hover:bg-pink-700 text-white font-bold py-3 rounded-xl transition shadow-md">
+                    ➕ Adicionar Propaganda
+                </button>
+            </div>
+
+            <!-- Lista de Propagandas Pré-salvas -->
+            <div>
+                <h3 class="text-sm font-medium text-gray-400 mb-3">Propagandas Salvas (Clique para ativar na TV):</h3>
+                <div id="lista-propagandas" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- Gerado via JS -->
+                </div>
+            </div>
+        </section>
     </main>
 
-    <!-- TELA DA TV (Oculta até clicar no botão) -->
+    <!-- TELA DA TV -->
     <main id="view-tv" class="hidden fixed inset-0 bg-black flex w-screen h-screen overflow-hidden">
-        <!-- Botão flutuante discreto para voltar ao painel -->
-        <button onclick="mudarAba('painel')" class="absolute top-4 left-4 z-50 bg-black/60 hover:bg-black/90 text-white/80 hover:text-white px-3 py-1.5 rounded-lg text-xs backdrop-blur border border-white/10 transition">
+        <button onclick="mudarAba('painel')" class="absolute top-4 left-4 z-50 bg-black/70 hover:bg-black text-white/90 px-4 py-2 rounded-xl text-sm backdrop-blur border border-white/10 transition shadow-lg">
             ⚙️ Voltar ao Painel
         </button>
 
-        <!-- Lado Esquerdo: Player Horizontal (TV ao Vivo) -->
+        <!-- Lado Esquerdo: Player Horizontal (Canal de TV Ativo) -->
         <div class="flex-1 h-full bg-black flex items-center justify-center relative">
             <div id="player-horizontal-container" class="w-full h-full"></div>
         </div>
 
-        <!-- Lado Direito: Player Vertical (Propagandas) -->
+        <!-- Lado Direito: Player Vertical (Propaganda Ativa) -->
         <div class="w-[380px] h-full bg-zinc-950 border-l border-zinc-800 flex items-center justify-center relative">
             <div id="player-vertical-container" class="w-full h-full"></div>
         </div>
