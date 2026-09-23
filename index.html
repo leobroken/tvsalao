@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel - TV do Salão</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- API do YouTube -->
     <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body class="bg-gray-950 text-white font-sans antialiased min-h-screen flex flex-col items-center p-6">
@@ -13,7 +14,7 @@
     <main id="view-painel" class="max-w-4xl w-full space-y-8 pb-12">
         <div class="text-center space-y-2">
             <h1 class="text-3xl font-bold tracking-wide">📺 Painel de Controle - TV do Salão</h1>
-            <p class="text-sm text-gray-400">Gerencie canais, propagandas com som/mudo individual e a sequência da TV.</p>
+            <p class="text-sm text-gray-400">Gerenciamento em tempo real (Sincronizado na Nuvem).</p>
         </div>
 
         <div>
@@ -57,7 +58,7 @@
                     
                     <div class="flex items-center space-x-3 bg-gray-950 border border-gray-800 p-3 rounded-xl">
                         <input type="checkbox" id="input-com-som-prop" class="w-4 h-4 accent-pink-600 rounded">
-                        <label for="input-com-som-prop" class="text-xs text-gray-300 cursor-pointer">Ativar som desta propaganda (Corta o som da TV ao vivo durante ela)</label>
+                        <label for="input-com-som-prop" class="text-xs text-gray-300 cursor-pointer">Ativar som desta propaganda</label>
                     </div>
 
                     <button onclick="adicionarPropaganda()" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-2.5 rounded-xl transition text-sm">
@@ -99,12 +100,10 @@
 
     <!-- TELA DA TV -->
     <main id="view-tv" class="hidden fixed inset-0 bg-black flex w-screen h-screen overflow-hidden">
-        
-        <!-- MODAL DE ATIVAÇÃO DE SOM (Exigido pelo navegador para destravar o áudio) -->
         <div id="modal-ativar-som" class="absolute inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-6 space-y-4">
             <div class="text-center space-y-2 max-w-md">
                 <h2 class="text-2xl font-bold text-emerald-400">📺 Pronto para iniciar a TV do Salão</h2>
-                <p class="text-sm text-gray-300">Para que o navegador permita que o som funcione corretamente, clique no botão abaixo para iniciar.</p>
+                <p class="text-sm text-gray-300">Clique no botão abaixo para iniciar a transmissão sincronizada.</p>
             </div>
             <button onclick="iniciarTransmissaoComSom()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-4 rounded-2xl transition shadow-2xl text-lg flex items-center space-x-2">
                 <span>🔊 Iniciar Transmissão com Som</span>
@@ -134,6 +133,7 @@
         </div>
     </main>
 
-    <script src="app.js"></script>
+    <!-- ATENÇÃO: type="module" obrigatório para o Firebase funcionar -->
+    <script type="module" src="app.js"></script>
 </body>
 </html>
