@@ -31,21 +31,29 @@ function salvarDados(dados) {
 function mudarAba(aba) {
     const viewPainel = document.getElementById('view-painel');
     const viewTv = document.getElementById('view-tv');
+    const modalSom = document.getElementById('modal-ativar-som');
 
     if (aba === 'tv') {
         viewPainel.classList.add('hidden');
         viewTv.classList.remove('hidden');
-        
-        // Pequeno atraso para garantir que o container visível carregou os players do YouTube
-        setTimeout(() => {
-            iniciarPlayersAPI();
-        }, 300);
+        // Mostra o botão de clique inicial para destravar o som
+        if (modalSom) modalSom.classList.remove('hidden');
     } else {
         viewTv.classList.add('hidden');
         viewPainel.classList.remove('hidden');
         if (timerVerificacao) clearInterval(timerVerificacao);
+        if (playerTv) playerTv.destroy();
+        if (playerProp) playerProp.destroy();
         renderizarPainel();
     }
+}
+
+// Executado ao clicar no botão de iniciar na tela da TV (libera o som no navegador)
+function iniciarTransmissaoComSom() {
+    const modalSom = document.getElementById('modal-ativar-som');
+    if (modalSom) modalSom.classList.add('hidden');
+
+    iniciarPlayersAPI();
 }
 
 function extrairIdYoutube(urlOuId) {
@@ -188,7 +196,6 @@ function renderizarPainel() {
     const containerSeletor = document.getElementById('seletor-adicionar-sequencia');
     containerSeletor.innerHTML = dados.bibliotecaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Cadastre propagandas acima.</p>' : '';
     dados.bibliotecaProps.forEach((prop) => {
-        // Passa o parâmetro de som corretamente ao botão
         const comSomStr = prop.comSom ? 'true' : 'false';
         containerSeletor.innerHTML += `
             <div class="flex items-center justify-between bg-gray-900 border border-gray-800 p-2.5 rounded-xl text-xs">
@@ -218,11 +225,10 @@ function renderizarPainel() {
     });
 }
 
-// Inicialização dos Players via API do YouTube
+// Inicialização dos Players via API do YouTube com liberação de som
 function iniciarPlayersAPI() {
     const dados = carregarDados();
 
-    // Se já existirem players, destrói para recriar limpo
     if (playerTv) playerTv.destroy();
     if (playerProp) playerProp.destroy();
 
@@ -233,7 +239,7 @@ function iniciarPlayersAPI() {
         videoId: dados.ativoHorizontal,
         playerVars: {
             'autoplay': 1,
-            'mute': 0, // TV começa com som normal de fundo
+            'mute': 0, // Libera o som normal da TV ao vivo
             'controls': 0,
             'disablekb': 1,
             'modestbranding': 1,
@@ -241,23 +247,25 @@ function iniciarPlayersAPI() {
             'playlist': dados.ativoHorizontal
         },
         events: {
-            'onReady': (event) => event.target.playVideo()
+            'onReady': (event) => {
+                event.target.unMute();
+                event.target.playVideo();
+            }
         }
     });
 
-    // Se houver itens na sequência de propagandas
+    // 2. Player Propagandas (Vertical)
     if (dados.sequenciaProps.length > 0) {
         const idsPlaylist = dados.sequenciaProps.map(p => p.id);
         indicePropAtual = 0;
 
-        // 2. Player Propagandas (Vertical)
         playerProp = new YT.Player('yt-player-prop', {
             height: '100%',
             width: '100%',
             videoId: idsPlaylist[0],
             playerVars: {
                 'autoplay': 1,
-                'mute': 1, // Começa mudo por segurança ou conforme o primeiro item
+                'mute': 1,
                 'controls': 0,
                 'disablekb': 1,
                 'modestbranding': 1
@@ -268,7 +276,6 @@ function iniciarPlayersAPI() {
                     aplicarRegraDeSomAtual();
                 },
                 'onStateChange': (event) => {
-                    // Quando o vídeo da propaganda termina (Estado 0), passa para o próximo da lista
                     if (event.data === YT.PlayerState.ENDED) {
                         indicePropAtual = (indicePropAtual + 1) % idsPlaylist.length;
                         playerProp.loadVideoById(idsPlaylist[indicePropAtual]);
@@ -279,14 +286,14 @@ function iniciarPlayersAPI() {
         });
     }
 
-    // Monitora o status de áudio na tela para feedback visual
     if (timerVerificacao) clearInterval(timerVerificacao);
     timerVerificacao = setInterval(() => {
-        atualizarIndicadorTela();
+        if (playerTv && playerTv.getPlayerState && playerTv.getPlayerState() !== YT.PlayerState.PLAYING) {
+            playerTv.playVideo();
+        }
     }, 1000);
 }
 
-// Aplica a regra: Se a propaganda atual tem som, silencia a TV ao vivo e liga o som dela. Caso contrário, som na TV e mudo na prop.
 function aplicarRegraDeSomAtual() {
     const dados = carregarDados();
     if (!dados.sequenciaProps || dados.sequenciaProps.length === 0) return;
@@ -295,7 +302,6 @@ function aplicarRegraDeSomAtual() {
     const indicador = document.getElementById('status-audio-tv');
 
     if (propAtual && propAtual.comSom) {
-        // Propaganda tem som: Silencia a TV e dá som na propaganda
         if (playerTv && typeof playerTv.mute === 'function') playerTv.mute();
         if (playerProp && typeof playerProp.unMute === 'function') playerProp.unMute();
         if (indicador) {
@@ -303,7 +309,6 @@ function aplicarRegraDeSomAtual() {
             indicador.classList.remove('hidden');
         }
     } else {
-        // Propaganda é muda: TV ao vivo com som de fundo normal
         if (playerTv && typeof playerTv.unMute === 'function') playerTv.unMute();
         if (playerProp && typeof playerProp.mute === 'function') playerProp.mute();
         if (indicador) {
@@ -312,16 +317,8 @@ function aplicarRegraDeSomAtual() {
     }
 }
 
-function atualizarIndicadorTela() {
-    // Garante que o player continue tocando caso haja bloqueio do navegador
-    if (playerTv && playerTv.getPlayerState && playerTv.getPlayerState() !== YT.PlayerState.PLAYING) {
-        playerTv.playVideo();
-    }
-}
-
-// Chamado automaticamente pela API do YouTube quando ela carrega na página
 function onYouTubeIframeAPIReady() {
-    // Pronto para uso
+    // Pronto
 }
 
 window.addEventListener('DOMContentLoaded', () => {
