@@ -3,70 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel da TV - Salão</title>
-    <!-- Tailwind CSS para estilização rápida -->
+    <title>Painel - TV do Salão</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-950 text-white font-sans antialiased min-h-screen flex flex-col">
+<body class="bg-gray-950 text-white font-sans antialiased min-h-screen flex flex-col items-center justify-center p-4">
 
-    <!-- Header / Navegação Simples -->
-    <header class="bg-gray-900 border-b border-gray-800 p-4 flex justify-between items-center">
-        <h1 class="text-xl font-bold tracking-wide">📺 TV Salão - Painel</h1>
-        <div class="space-x-3">
-            <button onclick="mudarAba('painel')" id="btn-painel" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium transition">Painel de Controle</button>
-            <button onclick="mudarAba('tv')" id="btn-tv" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg font-medium transition">Abrir Tela da TV</button>
+    <!-- PAINEL DE CONTROLE (Exibido por padrão) -->
+    <main id="view-painel" class="max-w-xl w-full space-y-6">
+        <div class="text-center space-y-2">
+            <h1 class="text-2xl font-bold tracking-wide">📺 Painel de Controle - TV do Salão</h1>
+            <p class="text-sm text-gray-400">Configure os vídeos que vão passar na TV do seu estabelecimento.</p>
         </div>
-    </header>
 
-    <!-- CONTEÚDO: PAINEL DE CONTROLE -->
-    <main id="view-painel" class="flex-1 p-6 max-w-4xl mx-auto w-full space-y-6">
-        <div class="bg-gray-900 border border-gray-800 p-6 rounded-xl shadow-lg">
-            <h2 class="text-lg font-semibold mb-4 text-blue-400">Configuração dos Players do YouTube</h2>
-            <p class="text-sm text-gray-400 mb-6">Insira os IDs ou URLs dos vídeos do YouTube. (Ex: se o link for `youtube.com/watch?v=XYZ123`, cole apenas `XYZ123`).</p>
-            
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium mb-1">Link/ID do Player Horizontal (TV ao Vivo / Fundo)</label>
-                    <input type="text" id="input-horizontal" placeholder="Ex: dQw4w9WgXcQ" class="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium mb-1">Link/ID do Player Vertical (Propagandas / Shorts)</label>
-                    <input type="text" id="input-vertical" placeholder="Ex: jNQXAC9IVRw" class="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500">
-                </div>
-
-                <button onclick="salvarConfiguracoes()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition shadow-md">
-                    Salvar e Aplicar
-                </button>
+        <div class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-xl space-y-5">
+            <div>
+                <label class="block text-sm font-medium mb-1 text-gray-300">Link ou ID do Player Horizontal (TV ao Vivo / Fundo)</label>
+                <input type="text" id="input-horizontal" placeholder="Ex: dQw4w9WgXcQ" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500">
             </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1 text-gray-300">Link ou ID do Player Vertical (Propagandas / Shorts)</label>
+                <input type="text" id="input-vertical" placeholder="Ex: jNQXAC9IVRw" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500">
+            </div>
+
+            <button onclick="salvarConfiguracoes()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl transition shadow-md">
+                💾 Salvar Configurações
+            </button>
         </div>
 
-        <div class="text-center">
-            <button onclick="mudarAba('tv')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl transition shadow-lg text-lg">
-                🚀 Ir Direto para a Tela da TV
+        <div class="pt-2">
+            <button onclick="mudarAba('tv')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition shadow-lg text-lg flex items-center justify-center space-x-2">
+                <span>🎬 Abrir Tela do Salão</span>
             </button>
         </div>
     </main>
 
-    <!-- CONTEÚDO: TELA DA TV (Oculta por padrão até mudar de aba) -->
-    <main id="view-tv" class="hidden flex-1 bg-black flex overflow-hidden w-screen h-screen">
+    <!-- TELA DA TV (Oculta até clicar no botão) -->
+    <main id="view-tv" class="hidden fixed inset-0 bg-black flex w-screen h-screen overflow-hidden">
+        <!-- Botão flutuante discreto para voltar ao painel -->
+        <button onclick="mudarAba('painel')" class="absolute top-4 left-4 z-50 bg-black/60 hover:bg-black/90 text-white/80 hover:text-white px-3 py-1.5 rounded-lg text-xs backdrop-blur border border-white/10 transition">
+            ⚙️ Voltar ao Painel
+        </button>
+
         <!-- Lado Esquerdo: Player Horizontal (TV ao Vivo) -->
         <div class="flex-1 h-full bg-black flex items-center justify-center relative">
-            <div id="player-horizontal-container" class="w-full h-full">
-                <!-- O Iframe será injetado via JavaScript -->
-            </div>
+            <div id="player-horizontal-container" class="w-full h-full"></div>
         </div>
 
         <!-- Lado Direito: Player Vertical (Propagandas) -->
-        <div class="w-[400px] h-full bg-zinc-900 border-l border-gray-800 flex items-center justify-center relative">
-            <div id="player-vertical-container" class="w-full h-full">
-                <!-- O Iframe será injetado via JavaScript -->
-            </div>
+        <div class="w-[380px] h-full bg-zinc-950 border-l border-zinc-800 flex items-center justify-center relative">
+            <div id="player-vertical-container" class="w-full h-full"></div>
         </div>
     </main>
 
-    <!-- Script da Aplicação -->
     <script src="app.js"></script>
 </body>
 </html>
-
