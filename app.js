@@ -21,19 +21,19 @@ let dadosGlobais = {
     ativoHorizontal: "jfKfPfyJRdk"
 };
 
-let playerProp = null;
 let indicePropAtual = 0;
+let timerRotacaoProps = null;
 
-// Ouve as alterações do Firebase em tempo real (Sincroniza celular e TV na hora)
+// Ouve as alterações do Firebase em tempo real
 onSnapshot(docRef, (docSnap) => {
     if (docSnap.exists()) {
         dadosGlobais = docSnap.data();
         renderizarPainel();
         
-        // Se a TV estiver aberta e o canal ativo mudar na nuvem, atualiza o iframe horizontal na mesma hora
+        // Se a TV estiver aberta, atualiza a transmissão em tempo real
         const viewTv = document.getElementById('view-tv');
         if (viewTv && !viewTv.classList.contains('hidden')) {
-            atualizarCanalHorizontal();
+            atualizarTransmissaoTV();
         }
     } else {
         salvarNoFirebase(dadosGlobais);
@@ -44,11 +44,10 @@ async function salvarNoFirebase(dados) {
     try {
         await setDoc(docRef, dados);
     } catch (e) {
-        console.error("Erro ao salvar no Firestore: ", e);
+        console.error("Erro ao guardar no Firestore: ", e);
     }
 }
 
-// Expõe as funções globalmente para funcionarem nos botões HTML (onclick)
 window.mudarAba = function(aba) {
     const viewPainel = document.getElementById('view-painel');
     const viewTv = document.getElementById('view-tv');
@@ -61,8 +60,9 @@ window.mudarAba = function(aba) {
     } else {
         viewTv.classList.add('hidden');
         viewPainel.classList.remove('hidden');
-        if (playerProp && typeof playerProp.destroy === 'function') playerProp.destroy();
+        if (timerRotacaoProps) clearInterval(timerRotacaoProps);
         document.getElementById('player-horizontal-container').innerHTML = '';
+        document.getElementById('player-vertical-container').innerHTML = '';
         renderizarPainel();
     }
 };
@@ -71,7 +71,7 @@ window.iniciarTransmissaoComSom = function() {
     const modalSom = document.getElementById('modal-ativar-som');
     if (modalSom) modalSom.classList.add('hidden');
 
-    // Ativa o Modo Tela Cheia Real
+    // Ativa o Modo Ecrã Inteiro Real (Modo Imersivo)
     try {
         const elem = document.documentElement;
         if (elem.requestFullscreen) {
@@ -82,17 +82,17 @@ window.iniciarTransmissaoComSom = function() {
             elem.msRequestFullscreen();
         }
     } catch (e) {
-        console.log("Tela cheia não suportada ou bloqueada.", e);
+        console.log("Ecrã inteiro não suportado ou bloqueado.", e);
     }
 
-    iniciarTransmissaoTV();
+    atualizarTransmissaoTV();
 };
 
 function extrairIdYoutube(urlOuId) {
     if (!urlOuId) return '';
     let id = urlOuId.trim();
     
-    // Suporte a links de Shorts do YouTube (ex: youtube.com/shorts/ID)
+    // Suporte a Shorts do YouTube
     if (id.includes('/shorts/')) {
         const partes = id.split('/shorts/');
         if (partes[1]) {
@@ -100,7 +100,7 @@ function extrairIdYoutube(urlOuId) {
         }
     }
 
-    // Suporte a links de live do tipo youtube.com/live/ID_DO_VIDEO
+    // Suporte a Lives do YouTube
     if (id.includes('/live/')) {
         const partes = id.split('/live/');
         if (partes[1]) {
@@ -118,19 +118,15 @@ function extrairIdYoutube(urlOuId) {
     return id;
 }
 
-// Funções de manipulação vinculadas ao window para salvar no Firebase
 window.adicionarCanal = function() {
     const nome = document.getElementById('input-nome-canal').value.trim();
     const link = document.getElementById('input-link-canal').value.trim();
-
     if (!nome || !link) {
         alert('Preencha o nome e o link do canal.');
         return;
     }
-
     dadosGlobais.canais.push({ id: extrairIdYoutube(link), nome: nome });
     salvarNoFirebase(dadosGlobais);
-
     document.getElementById('input-nome-canal').value = '';
     document.getElementById('input-link-canal').value = '';
 };
@@ -158,7 +154,6 @@ window.adicionarPropaganda = function() {
 
     dadosGlobais.bibliotecaProps.push({ id: extrairIdYoutube(link), nome: nome, comSom: comSom });
     salvarNoFirebase(dadosGlobais);
-
     document.getElementById('input-nome-prop').value = '';
     document.getElementById('input-link-prop').value = '';
     document.getElementById('input-com-som-prop').checked = false;
@@ -185,11 +180,10 @@ window.salvarSequencia = function() {
         return;
     }
     salvarNoFirebase(dadosGlobais);
-    alert('Sequência salva no Firebase com sucesso!');
+    alert('Sequência guardada no Firebase com sucesso!');
 };
 
 function renderizarPainel() {
-    // Canais
     const containerCanais = document.getElementById('lista-canais');
     if (containerCanais) {
         containerCanais.innerHTML = dadosGlobais.canais.length === 0 ? '<p class="text-xs text-gray-500 italic">Nenhum canal.</p>' : '';
@@ -200,7 +194,7 @@ function renderizarPainel() {
                     <span class="font-medium truncate mr-2">${canal.nome}</span>
                     <div class="flex items-center space-x-1 shrink-0">
                         <button onclick="selecionarCanalAtivo('${canal.id}')" class="px-2 py-1 font-bold rounded ${ativo ? 'bg-blue-600 text-white' : 'bg-gray-800 hover:bg-gray-700 text-gray-300'}">
-                            ${ativo ? 'Transmitindo' : 'Usar'}
+                            ${ativo ? 'A transmitir' : 'Usar'}
                         </button>
                         <button onclick="removerCanal(${index})" class="text-red-400 hover:text-red-300 p-1">🗑️</button>
                     </div>
@@ -209,7 +203,6 @@ function renderizarPainel() {
         });
     }
 
-    // Biblioteca de Propagandas
     const containerBib = document.getElementById('lista-biblioteca-props');
     if (containerBib) {
         containerBib.innerHTML = dadosGlobais.bibliotecaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Nenhuma propaganda.</p>' : '';
@@ -226,10 +219,9 @@ function renderizarPainel() {
         });
     }
 
-    // Seletor Sequência
     const containerSeletor = document.getElementById('seletor-adicionar-sequencia');
     if (containerSeletor) {
-        containerSeletor.innerHTML = dadosGlobais.bibliotecaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Cadastre propagandas acima.</p>' : '';
+        containerSeletor.innerHTML = dadosGlobais.bibliotecaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Registe propagandas acima.</p>' : '';
         dadosGlobais.bibliotecaProps.forEach((prop) => {
             const comSomStr = prop.comSom ? 'true' : 'false';
             containerSeletor.innerHTML += `
@@ -244,7 +236,6 @@ function renderizarPainel() {
         });
     }
 
-    // Sequência Atual
     const containerSeq = document.getElementById('lista-sequencia-atual');
     if (containerSeq) {
         containerSeq.innerHTML = dadosGlobais.sequenciaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Sequência vazia.</p>' : '';
@@ -263,81 +254,60 @@ function renderizarPainel() {
     }
 }
 
-// Inicia os players na tela da TV
-function iniciarTransmissaoTV() {
-    atualizarCanalHorizontal();
-    iniciarPlayerPropagandas();
+// Inicia ambos os leitores de forma automática com iframes puros (início imediato)
+function atualizarTransmissaoTV() {
+    const containerTv = document.getElementById('player-horizontal-container');
+    if (containerTv) {
+        containerTv.innerHTML = `
+            <iframe class="w-full h-full rounded-xl" 
+                src="https://www.youtube.com/embed/${dadosGlobais.ativoHorizontal}?autoplay=1&mute=0&loop=1&playlist=${dadosGlobais.ativoHorizontal}&controls=0&disablekb=1&modestbranding=1" 
+                title="TV ao Vivo" frameborder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowfullscreen>
+            </iframe>
+        `;
+    }
+
+    if (dadosGlobais.sequenciaProps.length > 0) {
+        indicePropAtual = 0;
+        carregarProximaPropagandaVertical();
+
+        if (timerRotacaoProps) clearInterval(timerRotacaoProps);
+        // Altere o tempo (em milissegundos) conforme a duração média dos seus Shorts/Propagandas (ex: 45000 = 45 segundos)
+        timerRotacaoProps = setInterval(() => {
+            indicePropAtual = (indicePropAtual + 1) % dadosGlobais.sequenciaProps.length;
+            carregarProximaPropagandaVertical();
+        }, 45000);
+    } else {
+        const containerV = document.getElementById('player-vertical-container');
+        if (containerV) containerV.innerHTML = `<p class="text-xs text-gray-500 text-center">Nenhuma propaganda na sequência.</p>`;
+    }
 }
 
-function atualizarCanalHorizontal() {
-    const containerTv = document.getElementById('player-horizontal-container');
-    if (!containerTv) return;
+function carregarProximaPropagandaVertical() {
+    const containerV = document.getElementById('player-vertical-container');
+    const indicador = document.getElementById('status-audio-tv');
+    const propAtual = dadosGlobais.sequenciaProps[indicePropAtual];
 
-    // Iframe puro para a TV ao vivo: garante autoplay imediato com som (`mute=0`)
-    containerTv.innerHTML = `
+    if (!propAtual || !containerV) return;
+
+    const muteParam = propAtual.comSom ? 0 : 1;
+
+    containerV.innerHTML = `
         <iframe class="w-full h-full rounded-xl" 
-            src="https://www.youtube.com/embed/${dadosGlobais.ativoHorizontal}?autoplay=1&mute=0&loop=1&playlist=${dadosGlobais.ativoHorizontal}&controls=0&disablekb=1&modestbranding=1" 
-            title="TV ao Vivo" frameborder="0" 
+            src="https://www.youtube.com/embed/${propAtual.id}?autoplay=1&mute=${muteParam}&controls=0&disablekb=1&modestbranding=1" 
+            title="Propagandas" frameborder="0" 
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
             allowfullscreen>
         </iframe>
     `;
-}
 
-// Player de Propagandas Vertical (Mantém a API do YouTube para gerenciar playlist e troca de áudio)
-function iniciarPlayerPropagandas() {
-    if (playerProp) playerProp.destroy();
-
-    const containerProp = document.getElementById('player-vertical-container');
-    if (containerProp) containerProp.innerHTML = '<div id="yt-player-prop"></div>';
-
-    if (dadosGlobais.sequenciaProps.length > 0) {
-        const idsPlaylist = dadosGlobais.sequenciaProps.map(p => p.id);
-        indicePropAtual = 0;
-
-        playerProp = new YT.Player('yt-player-prop', {
-            height: '100%',
-            width: '100%',
-            videoId: idsPlaylist[0],
-            playerVars: {
-                'autoplay': 1,
-                'mute': 1,
-                'controls': 0,
-                'disablekb': 1,
-                'modestbranding': 1,
-                'playsinline': 1
-            },
-            events: {
-                'onReady': (event) => {
-                    event.target.playVideo();
-                    aplicarRegraDeSomAtual();
-                },
-                'onStateChange': (event) => {
-                    if (event.data === YT.PlayerState.ENDED) {
-                        indicePropAtual = (indicePropAtual + 1) % idsPlaylist.length;
-                        playerProp.loadVideoById(idsPlaylist[indicePropAtual]);
-                        aplicarRegraDeSomAtual();
-                    }
-                }
-            }
-        });
-    }
-}
-
-function aplicarRegraDeSomAtual() {
-    if (!dadosGlobais.sequenciaProps || dadosGlobais.sequenciaProps.length === 0) return;
-
-    const propAtual = dadosGlobais.sequenciaProps[indicePropAtual];
-    const indicador = document.getElementById('status-audio-tv');
-
-    if (propAtual && propAtual.comSom) {
-        if (playerProp && typeof playerProp.unMute === 'function') playerProp.unMute();
+    if (propAtual.comSom) {
         if (indicador) {
             indicador.innerText = `🎬 Propaganda com Som: ${propAtual.nome}`;
             indicador.classList.remove('hidden');
         }
     } else {
-        if (playerProp && typeof playerProp.mute === 'function') playerProp.mute();
         if (indicador) {
             indicador.classList.add('hidden');
         }
