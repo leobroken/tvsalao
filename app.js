@@ -31,6 +31,14 @@ onSnapshot(docRef, (docSnap) => {
     if (docSnap.exists()) {
         dadosGlobais = docSnap.data();
         renderizarPainel();
+        
+        // Se a TV estiver aberta e o canal ativo mudar na nuvem, atualiza o player horizontal na mesma hora
+        if (playerTv && typeof playerTv.loadVideoById === 'function') {
+            const currentVideoId = playerTv.getVideoData ? playerTv.getVideoData().video_id : '';
+            if (currentVideoId && currentVideoId !== dadosGlobais.ativoHorizontal) {
+                playerTv.loadVideoById(dadosGlobais.ativoHorizontal);
+            }
+        }
     } else {
         salvarNoFirebase(dadosGlobais);
     }
@@ -260,7 +268,7 @@ function renderizarPainel() {
     }
 }
 
-// Inicialização dos Players via API do YouTube com suporte a Shorts
+// Inicialização dos Players via API do YouTube com disparo garantido para a TV ao vivo
 function iniciarPlayersAPI() {
     if (playerTv) playerTv.destroy();
     if (playerProp) playerProp.destroy();
@@ -289,6 +297,12 @@ function iniciarPlayersAPI() {
             'onReady': (event) => {
                 event.target.unMute();
                 event.target.playVideo();
+            },
+            'onStateChange': (event) => {
+                // Garante que se o player pausar por algum motivo, ele retoma automaticamente
+                if (event.data === YT.PlayerState.PAUSED) {
+                    event.target.playVideo();
+                }
             }
         }
     });
@@ -326,12 +340,16 @@ function iniciarPlayersAPI() {
         });
     }
 
+    // Timer de monitoramento contínuo para garantir que a TV ao vivo nunca fique travada
     if (timerVerificacao) clearInterval(timerVerificacao);
     timerVerificacao = setInterval(() => {
-        if (playerTv && playerTv.getPlayerState && playerTv.getPlayerState() !== YT.PlayerState.PLAYING) {
-            playerTv.playVideo();
+        if (playerTv && typeof playerTv.getPlayerState === 'function') {
+            const estado = playerTv.getPlayerState();
+            if (estado !== YT.PlayerState.PLAYING && estado !== YT.PlayerState.BUFFERING) {
+                playerTv.playVideo();
+            }
         }
-    }, 1000);
+    }, 1500);
 }
 
 function aplicarRegraDeSomAtual() {
