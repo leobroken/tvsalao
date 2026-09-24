@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel - TV do Salão</title>
+    <!-- Configuração do PWA (Instalação no Celular) -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#030712">
     
@@ -21,7 +22,7 @@
 
         <div>
             <button onclick="mudarAba('tv')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition shadow-lg text-lg flex items-center justify-center space-x-2">
-                <span>🚀 Abrir Tela do Salão</span>
+                <span>🚀 Abrir Tela do Salão (TV)</span>
             </button>
         </div>
 
@@ -102,15 +103,13 @@
 
     <!-- TELA DA TV -->
     <main id="view-tv" class="hidden fixed inset-0 bg-black flex w-screen h-screen overflow-hidden">
-        
-        <!-- Botão/Modal de Ativar Som (Exigido pelo navegador para liberar o áudio completo) -->
         <div id="modal-ativar-som" class="absolute inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-6 space-y-4">
             <div class="text-center space-y-2 max-w-md">
-                <h2 class="text-2xl font-bold text-emerald-400">📺 Tela do Salão Pronta</h2>
-                <p class="text-sm text-gray-300">Clique no botão abaixo para habilitar o som e iniciar a exibição.</p>
+                <h2 class="text-2xl font-bold text-emerald-400">📺 Pronto para iniciar a TV do Salão</h2>
+                <p class="text-sm text-gray-300">Clique no botão abaixo para iniciar a transmissão sincronizada.</p>
             </div>
-            <button onclick="ativarSomETelaCheia()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-4 rounded-2xl transition shadow-2xl text-lg flex items-center space-x-2">
-                <span>🔊 Ativar Som</span>
+            <button onclick="iniciarTransmissaoComSom()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-4 rounded-2xl transition shadow-2xl text-lg flex items-center space-x-2">
+                <span>🔊 Iniciar Transmissão com Som</span>
             </button>
         </div>
 
@@ -119,17 +118,15 @@
         </button>
 
         <div id="status-audio-tv" class="absolute top-4 right-4 z-40 bg-black/75 text-white/80 px-3 py-1.5 rounded-xl text-xs backdrop-blur border border-white/10 hidden">
-            🔊 Som Ativado
+            🔊 TV ao Vivo com Som
         </div>
 
-        <!-- Lado Esquerdo: Player Horizontal (Canais de TV) -->
         <div class="flex-1 h-full bg-black flex items-center justify-center p-2 relative">
             <div id="player-horizontal-container" class="w-full h-full flex items-center justify-center">
                 <div id="yt-player-tv"></div>
             </div>
         </div>
 
-        <!-- Lado Direito: Player Vertical (Propagandas / Shorts) -->
         <div class="w-[320px] lg:w-[360px] h-full bg-zinc-950 border-l border-zinc-900 flex flex-col items-center justify-center relative p-2">
             <div id="player-vertical-container" class="w-full h-full flex items-center justify-center">
                 <div id="yt-player-prop"></div>
@@ -137,13 +134,17 @@
         </div>
     </main>
 
+    <!-- Script para registrar o Service Worker do PWA -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').catch(() => {});
+                navigator.serviceWorker.register('./sw.js')
+                    .then((reg) => console.log('Service Worker registrado com sucesso!', reg))
+                    .catch((err) => console.log('Erro ao registrar Service Worker:', err));
             });
         }
     </script>
+
     <script type="module" src="app.js"></script>
 </body>
 </html>
