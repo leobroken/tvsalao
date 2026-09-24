@@ -25,8 +25,34 @@ let playerTv = null;
 let playerProp = null;
 let indicePropAtual = 0;
 let timerVerificacao = null;
+let wakeLock = null; // Variável para controlar o bloqueio de suspensão do ecrã
 
-// Ouve as alterações do Firebase em tempo real (Sincroniza celular e TV na hora)
+// Função para manter o ecrã sempre ligado
+async function solicitarWakeLock() {
+    try {
+        if ('wakeLock' in navigator) {
+            wakeLock = await navigator.wakeLock.request('screen');
+            console.log('Wake Lock ativado: O ecrã não vai desligar.');
+            
+            // Se o utilizador alternar de aba e voltar, reativa o lock automaticamente
+            wakeLock.addEventListener('release', () => {
+                console.log('Wake Lock foi libertado.');
+            });
+        }
+    } catch (err) {
+        console.error(`Erro ao ativar Wake Lock: ${err.name}, ${err.message}`);
+    }
+}
+
+// Reativa o Wake Lock se a página voltar a ficar visível
+document.addEventListener('visibilitychange', async () => {
+    const viewTv = document.getElementById('view-tv');
+    if (wakeLock !== null && document.visibilityState === 'visible' && viewTv && !viewTv.classList.contains('hidden')) {
+        await solicitarWakeLock();
+    }
+});
+
+// Ouve as alterações do Firebase em tempo real (Sincroniza telemóvel e TV na hora)
 onSnapshot(docRef, (docSnap) => {
     if (docSnap.exists()) {
         dadosGlobais = docSnap.data();
@@ -55,7 +81,7 @@ window.mudarAba = function(aba) {
         viewTv.classList.remove('hidden');
         if (modalSom) modalSom.classList.remove('hidden');
 
-        // Força a Tela Cheia Real (Modo Imersivo) para esconder relógio, bateria e botões de navegação
+        // Força a Tela Cheia Real (Modo Imersivo)
         try {
             const elem = document.documentElement;
             if (elem.requestFullscreen) {
@@ -69,12 +95,23 @@ window.mudarAba = function(aba) {
             console.log("Modo tela cheia não suportado ou bloqueado.", e);
         }
 
+        // Ativa o bloqueio para o ecrã do tablet nunca apagar
+        solicitarWakeLock();
+
     } else {
         viewTv.classList.add('hidden');
         viewPainel.classList.remove('hidden');
         if (timerVerificacao) clearInterval(timerVerificacao);
         if (playerTv && typeof playerTv.destroy === 'function') playerTv.destroy();
         if (playerProp && typeof playerProp.destroy === 'function') playerProp.destroy();
+        
+        // Liberta o Wake Lock ao voltar para o painel de controlo
+        if (wakeLock !== null) {
+            wakeLock.release().then(() => {
+                wakeLock = null;
+            });
+        }
+
         renderizarPainel();
     }
 };
@@ -83,6 +120,9 @@ window.iniciarTransmissaoComSom = function() {
     const modalSom = document.getElementById('modal-ativar-som');
     if (modalSom) modalSom.classList.add('hidden');
     iniciarPlayersAPI();
+    
+    // Garante a ativação do Wake Lock também no clique de iniciar a transmissão
+    solicitarWakeLock();
 };
 
 function extrairIdYoutube(urlOuId) {
