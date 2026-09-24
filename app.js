@@ -32,11 +32,12 @@ onSnapshot(docRef, (docSnap) => {
         dadosGlobais = docSnap.data();
         renderizarPainel();
         
-        // Se a TV estiver aberta e o canal ativo mudar na nuvem, atualiza o player horizontal na mesma hora
+        // Se a TV estiver aberta e o canal ativo mudar na nuvem, atualiza o player horizontal
         if (playerTv && typeof playerTv.loadVideoById === 'function') {
             const currentVideoId = playerTv.getVideoData ? playerTv.getVideoData().video_id : '';
             if (currentVideoId && currentVideoId !== dadosGlobais.ativoHorizontal) {
                 playerTv.loadVideoById(dadosGlobais.ativoHorizontal);
+                setTimeout(() => playerTv.playVideo(), 500);
             }
         }
     } else {
@@ -76,7 +77,7 @@ window.iniciarTransmissaoComSom = function() {
     const modalSom = document.getElementById('modal-ativar-som');
     if (modalSom) modalSom.classList.add('hidden');
 
-    // Ativa o Modo Tela Cheia Real (Oculta relógio, barra de status e botões de navegação)
+    // Ativa o Modo Tela Cheia Real
     try {
         const elem = document.documentElement;
         if (elem.requestFullscreen) {
@@ -268,7 +269,7 @@ function renderizarPainel() {
     }
 }
 
-// Inicialização dos Players via API do YouTube com disparo garantido para a TV ao vivo
+// Inicialização dos Players via API do YouTube com força total no Play da TV ao vivo
 function iniciarPlayersAPI() {
     if (playerTv) playerTv.destroy();
     if (playerProp) playerProp.destroy();
@@ -297,12 +298,12 @@ function iniciarPlayersAPI() {
             'onReady': (event) => {
                 event.target.unMute();
                 event.target.playVideo();
-            },
-            'onStateChange': (event) => {
-                // Garante que se o player pausar por algum motivo, ele retoma automaticamente
-                if (event.data === YT.PlayerState.PAUSED) {
-                    event.target.playVideo();
-                }
+                // Reforço duplo de play após 800ms para garantir que o autoplay dispare
+                setTimeout(() => {
+                    if (event.target && typeof event.target.playVideo === 'function') {
+                        event.target.playVideo();
+                    }
+                }, 800);
             }
         }
     });
@@ -340,7 +341,7 @@ function iniciarPlayersAPI() {
         });
     }
 
-    // Timer de monitoramento contínuo para garantir que a TV ao vivo nunca fique travada
+    // Monitoramento constante para forçar o player horizontal a rodar caso o navegador tente segurá-lo
     if (timerVerificacao) clearInterval(timerVerificacao);
     timerVerificacao = setInterval(() => {
         if (playerTv && typeof playerTv.getPlayerState === 'function') {
@@ -349,7 +350,7 @@ function iniciarPlayersAPI() {
                 playerTv.playVideo();
             }
         }
-    }, 1500);
+    }, 1000);
 }
 
 function aplicarRegraDeSomAtual() {
