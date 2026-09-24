@@ -25,26 +25,18 @@ let playerTv = null;
 let playerProp = null;
 let indicePropAtual = 0;
 let timerVerificacao = null;
-let wakeLock = null; // Variável para controlar o bloqueio de suspensão do ecrã
+let wakeLock = null;
 
-// Função para manter o ecrã sempre ligado
 async function solicitarWakeLock() {
     try {
         if ('wakeLock' in navigator) {
             wakeLock = await navigator.wakeLock.request('screen');
-            console.log('Wake Lock ativado: O ecrã não vai desligar.');
-            
-            // Se o utilizador alternar de aba e voltar, reativa o lock automaticamente
-            wakeLock.addEventListener('release', () => {
-                console.log('Wake Lock foi libertado.');
-            });
         }
     } catch (err) {
         console.error(`Erro ao ativar Wake Lock: ${err.name}, ${err.message}`);
     }
 }
 
-// Reativa o Wake Lock se a página voltar a ficar visível
 document.addEventListener('visibilitychange', async () => {
     const viewTv = document.getElementById('view-tv');
     if (wakeLock !== null && document.visibilityState === 'visible' && viewTv && !viewTv.classList.contains('hidden')) {
@@ -52,7 +44,7 @@ document.addEventListener('visibilitychange', async () => {
     }
 });
 
-// Ouve as alterações do Firebase em tempo real (Sincroniza telemóvel e TV na hora)
+// Ouve as alterações do Firebase em tempo real (Sincroniza celular e TV na hora)
 onSnapshot(docRef, (docSnap) => {
     if (docSnap.exists()) {
         dadosGlobais = docSnap.data();
@@ -95,7 +87,6 @@ window.mudarAba = function(aba) {
             console.log("Modo tela cheia não suportado ou bloqueado.", e);
         }
 
-        // Ativa o bloqueio para o ecrã do tablet nunca apagar
         solicitarWakeLock();
 
     } else {
@@ -105,7 +96,6 @@ window.mudarAba = function(aba) {
         if (playerTv && typeof playerTv.destroy === 'function') playerTv.destroy();
         if (playerProp && typeof playerProp.destroy === 'function') playerProp.destroy();
         
-        // Liberta o Wake Lock ao voltar para o painel de controlo
         if (wakeLock !== null) {
             wakeLock.release().then(() => {
                 wakeLock = null;
@@ -120,8 +110,6 @@ window.iniciarTransmissaoComSom = function() {
     const modalSom = document.getElementById('modal-ativar-som');
     if (modalSom) modalSom.classList.add('hidden');
     iniciarPlayersAPI();
-    
-    // Garante a ativação do Wake Lock também no clique de iniciar a transmissão
     solicitarWakeLock();
 };
 
@@ -129,7 +117,6 @@ function extrairIdYoutube(urlOuId) {
     if (!urlOuId) return '';
     let id = urlOuId.trim();
     
-    // Suporte a links de Shorts do YouTube (ex: youtube.com/shorts/ID)
     if (id.includes('/shorts/')) {
         const partes = id.split('/shorts/');
         if (partes[1]) {
@@ -137,7 +124,6 @@ function extrairIdYoutube(urlOuId) {
         }
     }
 
-    // Suporte a links de live do tipo youtube.com/live/ID_DO_VIDEO
     if (id.includes('/live/')) {
         const partes = id.split('/live/');
         if (partes[1]) {
@@ -226,7 +212,6 @@ window.salvarSequencia = function() {
 };
 
 function renderizarPainel() {
-    // Canais
     const containerCanais = document.getElementById('lista-canais');
     if (containerCanais) {
         containerCanais.innerHTML = dadosGlobais.canais.length === 0 ? '<p class="text-xs text-gray-500 italic">Nenhum canal.</p>' : '';
@@ -246,7 +231,6 @@ function renderizarPainel() {
         });
     }
 
-    // Biblioteca de Propagandas
     const containerBib = document.getElementById('lista-biblioteca-props');
     if (containerBib) {
         containerBib.innerHTML = dadosGlobais.bibliotecaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Nenhuma propaganda.</p>' : '';
@@ -263,7 +247,6 @@ function renderizarPainel() {
         });
     }
 
-    // Seletor Sequência
     const containerSeletor = document.getElementById('seletor-adicionar-sequencia');
     if (containerSeletor) {
         containerSeletor.innerHTML = dadosGlobais.bibliotecaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Cadastre propagandas acima.</p>' : '';
@@ -281,7 +264,6 @@ function renderizarPainel() {
         });
     }
 
-    // Sequência Atual
     const containerSeq = document.getElementById('lista-sequencia-atual');
     if (containerSeq) {
         containerSeq.innerHTML = dadosGlobais.sequenciaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Sequência vazia.</p>' : '';
@@ -305,7 +287,6 @@ function iniciarPlayersAPI() {
     if (playerTv) playerTv.destroy();
     if (playerProp) playerProp.destroy();
 
-    // Garante que os containers internos existam antes de instanciar os players
     const containerTv = document.getElementById('player-horizontal-container');
     if (containerTv) containerTv.innerHTML = '<div id="yt-player-tv"></div>';
 
@@ -334,7 +315,7 @@ function iniciarPlayersAPI() {
         }
     });
 
-    // 2. Player Propagandas (Vertical - Compatível com Shorts e Vídeos Normais)
+    // 2. Player Propagandas (Vertical)
     if (dadosGlobais.sequenciaProps.length > 0) {
         const idsPlaylist = dadosGlobais.sequenciaProps.map(p => p.id);
         indicePropAtual = 0;
@@ -357,7 +338,6 @@ function iniciarPlayersAPI() {
                     aplicarRegraDeSomAtual();
                 },
                 'onStateChange': (event) => {
-                    // Quando o vídeo atual (seja Shorts ou comum) termina, avança para o próximo
                     if (event.data === YT.PlayerState.ENDED) {
                         indicePropAtual = (indicePropAtual + 1) % idsPlaylist.length;
                         playerProp.loadVideoById(idsPlaylist[indicePropAtual]);
