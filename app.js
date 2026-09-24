@@ -1,149 +1,344 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel - TV do Salão</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#030712">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyBoZ-MT_xyvnuV_-JEA9BP@vqpv-AgMJ3o",
+    authDomain: "tv-salao-359c2.firebaseapp.com",
+    projectId: "tv-salao-359c2",
+    storageBucket: "tv-salao-359c2.firebasestorage.app",
+    messagingSenderId: "675609854274",
+    appId: "1:675609854274:web:c81a874cc6399ddb0848db"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const docRef = doc(db, "configuracoes", "tv_salao");
+
+let dadosGlobais = {
+    canais: [{ id: "jfKfPfyJRdk", nome: "Canal Padrão (Exemplo)" }],
+    bibliotecaProps: [{ id: "jfKfPfyJRdk", nome: "Propaganda Padrão", comSom: false }],
+    sequenciaProps: [{ id: "jfKfPfyJRdk", nome: "Propaganda Padrão", comSom: false }],
+    ativoHorizontal: "jfKfPfyJRdk"
+};
+
+let playerTv = null;
+let playerProp = null;
+let indicePropAtual = 0;
+let timerVerificacao = null;
+
+// Ouve as alterações do Firebase em tempo real (Sincroniza celular e TV na hora)
+onSnapshot(docRef, (docSnap) => {
+    if (docSnap.exists()) {
+        dadosGlobais = docSnap.data();
+        renderizarPainel();
+    } else {
+        salvarNoFirebase(dadosGlobais);
+    }
+});
+
+async function salvarNoFirebase(dados) {
+    try {
+        await setDoc(docRef, dados);
+    } catch (e) {
+        console.error("Erro ao salvar no Firestore: ", e);
+    }
+}
+
+// Expõe as funções globalmente para funcionarem nos botões HTML (onclick)
+window.mudarAba = function(aba) {
+    const viewPainel = document.getElementById('view-painel');
+    const viewTv = document.getElementById('view-tv');
+    const modalSom = document.getElementById('modal-ativar-som');
+
+    if (aba === 'tv') {
+        viewPainel.classList.add('hidden');
+        viewTv.classList.remove('hidden');
+        if (modalSom) modalSom.classList.remove('hidden');
+    } else {
+        viewTv.classList.add('hidden');
+        viewPainel.classList.remove('hidden');
+        if (timerVerificacao) clearInterval(timerVerificacao);
+        if (playerTv && typeof playerTv.destroy === 'function') playerTv.destroy();
+        if (playerProp && typeof playerProp.destroy === 'function') playerProp.destroy();
+        renderizarPainel();
+    }
+};
+
+window.iniciarTransmissaoComSom = function() {
+    const modalSom = document.getElementById('modal-ativar-som');
+    if (modalSom) modalSom.classList.add('hidden');
+    iniciarPlayersAPI();
+};
+
+function extrairIdYoutube(urlOuId) {
+    if (!urlOuId) return '';
+    let id = urlOuId.trim();
     
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://www.youtube.com/iframe_api"></script>
-</head>
-<body class="bg-gray-950 text-white font-sans antialiased min-h-screen flex flex-col items-center p-6">
-
-    <!-- PAINEL DE CONTROLE -->
-    <main id="view-painel" class="max-w-4xl w-full space-y-8 pb-12">
-        <div class="text-center space-y-2">
-            <h1 class="text-3xl font-bold tracking-wide">📺 Painel de Controle - TV do Salão</h1>
-            <p class="text-sm text-gray-400">Gerenciamento em tempo real (Sincronizado na Nuvem).</p>
-        </div>
-
-        <div>
-            <button onclick="mudarAba('tv')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition shadow-lg text-lg flex items-center justify-center space-x-2">
-                <span>🚀 Abrir Tela do Salão</span>
-            </button>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- SEÇÃO 1: CANAIS DE TV -->
-            <section class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-xl space-y-6">
-                <div class="flex justify-between items-center border-b border-gray-800 pb-4">
-                    <h2 class="text-lg font-semibold text-blue-400">📺 Canais de TV ao Vivo</h2>
-                    <span class="text-xs bg-blue-950 text-blue-300 px-2.5 py-1 rounded-full border border-blue-800">Horizontal</span>
-                </div>
-
-                <div class="space-y-3">
-                    <input type="text" id="input-nome-canal" placeholder="Nome do Canal (Ex: CNN)" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
-                    <input type="text" id="input-link-canal" placeholder="Link ou ID do YouTube" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
-                    <button onclick="adicionarCanal()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl transition text-sm">
-                        ➕ Salvar Canal
-                    </button>
-                </div>
-
-                <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
-                    <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wider">Canais Salvos:</h3>
-                    <div id="lista-canais" class="space-y-2"></div>
-                </div>
-            </section>
-
-            <!-- SEÇÃO 2: BIBLIOTECA DE PROPAGANDAS -->
-            <section class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-xl space-y-6">
-                <div class="flex justify-between items-center border-b border-gray-800 pb-4">
-                    <h2 class="text-lg font-semibold text-pink-400">🎬 Biblioteca de Propagandas</h2>
-                    <span class="text-xs bg-pink-950 text-pink-300 px-2.5 py-1 rounded-full border border-pink-800">Vertical</span>
-                </div>
-
-                <div class="space-y-3">
-                    <input type="text" id="input-nome-prop" placeholder="Nome (Ex: Mega Hair Promo)" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-pink-500">
-                    <input type="text" id="input-link-prop" placeholder="Link ou ID do YouTube" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-pink-500">
-                    
-                    <div class="flex items-center space-x-3 bg-gray-950 border border-gray-800 p-3 rounded-xl">
-                        <input type="checkbox" id="input-com-som-prop" class="w-4 h-4 accent-pink-600 rounded">
-                        <label for="input-com-som-prop" class="text-xs text-gray-300 cursor-pointer">Ativar som desta propaganda</label>
-                    </div>
-
-                    <button onclick="adicionarPropaganda()" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-2.5 rounded-xl transition text-sm">
-                        ➕ Cadastrar Propaganda
-                    </button>
-                </div>
-
-                <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
-                    <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wider">Vídeos Cadastrados:</h3>
-                    <div id="lista-biblioteca-props" class="space-y-2"></div>
-                </div>
-            </section>
-        </div>
-
-        <!-- SEÇÃO 3: MONTAGEM DA SEQUÊNCIA -->
-        <section class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-xl space-y-6">
-            <div class="flex justify-between items-center border-b border-gray-800 pb-4">
-                <div>
-                    <h2 class="text-xl font-semibold text-emerald-400">⚙️ Sequência de Exibição (Playlist Vertical)</h2>
-                    <p class="text-xs text-gray-400 mt-1">Monte a ordem em que as propagandas vão passar na TV.</p>
-                </div>
-                <button onclick="salvarSequencia()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2.5 rounded-xl transition text-sm shadow">
-                    💾 Salvar Sequência
-                </button>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="space-y-3">
-                    <h3 class="text-sm font-medium text-gray-300">1. Clique para adicionar à sequência:</h3>
-                    <div id="seletor-adicionar-sequencia" class="space-y-2 bg-gray-950 p-4 rounded-xl border border-gray-800 max-h-72 overflow-y-auto"></div>
-                </div>
-                <div class="space-y-3">
-                    <h3 class="text-sm font-medium text-gray-300">2. Sequência Atual:</h3>
-                    <div id="lista-sequencia-atual" class="space-y-2 bg-gray-950 p-4 rounded-xl border border-gray-800 max-h-72 overflow-y-auto"></div>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- TELA DA TV -->
-    <main id="view-tv" class="hidden fixed inset-0 bg-black flex w-screen h-screen overflow-hidden">
-        
-        <!-- Botão/Modal de Ativar Som (Exigido pelo navegador para liberar o áudio completo) -->
-        <div id="modal-ativar-som" class="absolute inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-6 space-y-4">
-            <div class="text-center space-y-2 max-w-md">
-                <h2 class="text-2xl font-bold text-emerald-400">📺 Tela do Salão Pronta</h2>
-                <p class="text-sm text-gray-300">Clique no botão abaixo para habilitar o som e iniciar a exibição.</p>
-            </div>
-            <button onclick="ativarSomETelaCheia()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-4 rounded-2xl transition shadow-2xl text-lg flex items-center space-x-2">
-                <span>🔊 Ativar Som</span>
-            </button>
-        </div>
-
-        <button onclick="mudarAba('painel')" class="absolute top-4 left-4 z-40 bg-black/75 hover:bg-black text-white/90 px-4 py-2 rounded-xl text-sm backdrop-blur border border-white/15 transition shadow-2xl">
-            ⚙️ Voltar ao Painel
-        </button>
-
-        <div id="status-audio-tv" class="absolute top-4 right-4 z-40 bg-black/75 text-white/80 px-3 py-1.5 rounded-xl text-xs backdrop-blur border border-white/10 hidden">
-            🔊 Som Ativado
-        </div>
-
-        <!-- Lado Esquerdo: Player Horizontal (Canais de TV) -->
-        <div class="flex-1 h-full bg-black flex items-center justify-center p-2 relative">
-            <div id="player-horizontal-container" class="w-full h-full flex items-center justify-center">
-                <div id="yt-player-tv"></div>
-            </div>
-        </div>
-
-        <!-- Lado Direito: Player Vertical (Propagandas / Shorts) -->
-        <div class="w-[320px] lg:w-[360px] h-full bg-zinc-950 border-l border-zinc-900 flex flex-col items-center justify-center relative p-2">
-            <div id="player-vertical-container" class="w-full h-full flex items-center justify-center">
-                <div id="yt-player-prop"></div>
-            </div>
-        </div>
-    </main>
-
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').catch(() => {});
-            });
+    // Suporte a links de Shorts do YouTube (ex: youtube.com/shorts/ID)
+    if (id.includes('/shorts/')) {
+        const partes = id.split('/shorts/');
+        if (partes[1]) {
+            return partes[1].split('?')[0].split('/')[0];
         }
-    </script>
-    <script type="module" src="app.js"></script>
-</body>
-</html>
+    }
+
+    // Suporte a links de live do tipo youtube.com/live/ID_DO_VIDEO
+    if (id.includes('/live/')) {
+        const partes = id.split('/live/');
+        if (partes[1]) {
+            return partes[1].split('?')[0].split('/')[0];
+        }
+    }
+    
+    if (id.includes('youtube.com') || id.includes('youtu.be')) {
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+        const match = id.match(regExp);
+        if (match && match[2].length === 11) {
+            return match[2];
+        }
+    }
+    return id;
+}
+
+// Funções de manipulação vinculadas ao window para salvar no Firebase
+window.adicionarCanal = function() {
+    const nome = document.getElementById('input-nome-canal').value.trim();
+    const link = document.getElementById('input-link-canal').value.trim();
+
+    if (!nome || !link) {
+        alert('Preencha o nome e o link do canal.');
+        return;
+    }
+
+    dadosGlobais.canais.push({ id: extrairIdYoutube(link), nome: nome });
+    salvarNoFirebase(dadosGlobais);
+
+    document.getElementById('input-nome-canal').value = '';
+    document.getElementById('input-link-canal').value = '';
+};
+
+window.removerCanal = function(index) {
+    dadosGlobais.canais.splice(index, 1);
+    salvarNoFirebase(dadosGlobais);
+};
+
+window.selecionarCanalAtivo = function(id) {
+    dadosGlobais.ativoHorizontal = id;
+    salvarNoFirebase(dadosGlobais);
+    alert('Canal definido na TV!');
+};
+
+window.adicionarPropaganda = function() {
+    const nome = document.getElementById('input-nome-prop').value.trim();
+    const link = document.getElementById('input-link-prop').value.trim();
+    const comSom = document.getElementById('input-com-som-prop').checked;
+
+    if (!nome || !link) {
+        alert('Preencha o nome e o link da propaganda.');
+        return;
+    }
+
+    dadosGlobais.bibliotecaProps.push({ id: extrairIdYoutube(link), nome: nome, comSom: comSom });
+    salvarNoFirebase(dadosGlobais);
+
+    document.getElementById('input-nome-prop').value = '';
+    document.getElementById('input-link-prop').value = '';
+    document.getElementById('input-com-som-prop').checked = false;
+};
+
+window.removerPropagandaBiblioteca = function(index) {
+    dadosGlobais.bibliotecaProps.splice(index, 1);
+    salvarNoFirebase(dadosGlobais);
+};
+
+window.adicionarNaSequencia = function(id, nome, comSom) {
+    dadosGlobais.sequenciaProps.push({ id: id, nome: nome, comSom: comSom });
+    salvarNoFirebase(dadosGlobais);
+};
+
+window.removerDaSequencia = function(index) {
+    dadosGlobais.sequenciaProps.splice(index, 1);
+    salvarNoFirebase(dadosGlobais);
+};
+
+window.salvarSequencia = function() {
+    if (dadosGlobais.sequenciaProps.length === 0) {
+        alert('A sequência está vazia!');
+        return;
+    }
+    salvarNoFirebase(dadosGlobais);
+    alert('Sequência salva no Firebase com sucesso!');
+};
+
+function renderizarPainel() {
+    // Canais
+    const containerCanais = document.getElementById('lista-canais');
+    if (containerCanais) {
+        containerCanais.innerHTML = dadosGlobais.canais.length === 0 ? '<p class="text-xs text-gray-500 italic">Nenhum canal.</p>' : '';
+        dadosGlobais.canais.forEach((canal, index) => {
+            const ativo = dadosGlobais.ativoHorizontal === canal.id;
+            containerCanais.innerHTML += `
+                <div class="flex items-center justify-between bg-gray-950 border ${ativo ? 'border-blue-500 bg-blue-950/20' : 'border-gray-800'} p-2.5 rounded-xl text-xs">
+                    <span class="font-medium truncate mr-2">${canal.nome}</span>
+                    <div class="flex items-center space-x-1 shrink-0">
+                        <button onclick="selecionarCanalAtivo('${canal.id}')" class="px-2 py-1 font-bold rounded ${ativo ? 'bg-blue-600 text-white' : 'bg-gray-800 hover:bg-gray-700 text-gray-300'}">
+                            ${ativo ? 'Transmitindo' : 'Usar'}
+                        </button>
+                        <button onclick="removerCanal(${index})" class="text-red-400 hover:text-red-300 p-1">🗑️</button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    // Biblioteca de Propagandas
+    const containerBib = document.getElementById('lista-biblioteca-props');
+    if (containerBib) {
+        containerBib.innerHTML = dadosGlobais.bibliotecaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Nenhuma propaganda.</p>' : '';
+        dadosGlobais.bibliotecaProps.forEach((prop, index) => {
+            containerBib.innerHTML += `
+                <div class="flex items-center justify-between bg-gray-950 border border-gray-800 p-2.5 rounded-xl text-xs">
+                    <div class="truncate mr-2">
+                        <span class="font-medium">${prop.nome}</span>
+                        <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded ${prop.comSom ? 'bg-pink-900/60 text-pink-300' : 'bg-gray-800 text-gray-400'}">${prop.comSom ? '🔊 Com Som' : '🔇 Mudo'}</span>
+                    </div>
+                    <button onclick="removerPropagandaBiblioteca(${index})" class="text-red-400 hover:text-red-300 p-1 shrink-0">🗑️</button>
+                </div>
+            `;
+        });
+    }
+
+    // Seletor Sequência
+    const containerSeletor = document.getElementById('seletor-adicionar-sequencia');
+    if (containerSeletor) {
+        containerSeletor.innerHTML = dadosGlobais.bibliotecaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Cadastre propagandas acima.</p>' : '';
+        dadosGlobais.bibliotecaProps.forEach((prop) => {
+            const comSomStr = prop.comSom ? 'true' : 'false';
+            containerSeletor.innerHTML += `
+                <div class="flex items-center justify-between bg-gray-900 border border-gray-800 p-2.5 rounded-xl text-xs">
+                    <div class="truncate mr-2">
+                        <span class="truncate">${prop.nome}</span>
+                        <span class="text-[10px] text-gray-400">(${prop.comSom ? 'Com Som' : 'Mudo'})</span>
+                    </div>
+                    <button onclick="adicionarNaSequencia('${prop.id}', '${prop.nome.replace(/'/g, "\\'")}', ${comSomStr})" class="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded font-bold shrink-0">➕ Adicionar</button>
+                </div>
+            `;
+        });
+    }
+
+    // Sequência Atual
+    const containerSeq = document.getElementById('lista-sequencia-atual');
+    if (containerSeq) {
+        containerSeq.innerHTML = dadosGlobais.sequenciaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Sequência vazia.</p>' : '';
+        dadosGlobais.sequenciaProps.forEach((prop, index) => {
+            containerSeq.innerHTML += `
+                <div class="flex items-center justify-between bg-gray-900 border border-gray-800 p-2.5 rounded-xl text-xs">
+                    <div class="flex items-center space-x-2 truncate mr-2">
+                        <span class="text-gray-500 font-bold">${index + 1}.</span>
+                        <span class="truncate">${prop.nome}</span>
+                        <span class="text-[10px] text-gray-400">(${prop.comSom ? 'Com Som' : 'Mudo'})</span>
+                    </div>
+                    <button onclick="removerDaSequencia(${index})" class="text-red-400 hover:text-red-300 p-1 shrink-0">❌</button>
+                </div>
+            `;
+        });
+    }
+}
+
+// Inicialização dos Players via API do YouTube com suporte a Shorts
+function iniciarPlayersAPI() {
+    if (playerTv) playerTv.destroy();
+    if (playerProp) playerProp.destroy();
+
+    // Garante que os containers internos existam antes de instanciar os players
+    const containerTv = document.getElementById('player-horizontal-container');
+    if (containerTv) containerTv.innerHTML = '<div id="yt-player-tv"></div>';
+
+    const containerProp = document.getElementById('player-vertical-container');
+    if (containerProp) containerProp.innerHTML = '<div id="yt-player-prop"></div>';
+
+    // 1. Player TV ao Vivo (Horizontal)
+    playerTv = new YT.Player('yt-player-tv', {
+        height: '100%',
+        width: '100%',
+        videoId: dadosGlobais.ativoHorizontal,
+        playerVars: {
+            'autoplay': 1,
+            'mute': 0,
+            'controls': 0,
+            'disablekb': 1,
+            'modestbranding': 1,
+            'loop': 1,
+            'playlist': dadosGlobais.ativoHorizontal
+        },
+        events: {
+            'onReady': (event) => {
+                event.target.unMute();
+                event.target.playVideo();
+            }
+        }
+    });
+
+    // 2. Player Propagandas (Vertical - Compatível com Shorts e Vídeos Normais)
+    if (dadosGlobais.sequenciaProps.length > 0) {
+        const idsPlaylist = dadosGlobais.sequenciaProps.map(p => p.id);
+        indicePropAtual = 0;
+
+        playerProp = new YT.Player('yt-player-prop', {
+            height: '100%',
+            width: '100%',
+            videoId: idsPlaylist[0],
+            playerVars: {
+                'autoplay': 1,
+                'mute': 1,
+                'controls': 0,
+                'disablekb': 1,
+                'modestbranding': 1,
+                'playsinline': 1
+            },
+            events: {
+                'onReady': (event) => {
+                    event.target.playVideo();
+                    aplicarRegraDeSomAtual();
+                },
+                'onStateChange': (event) => {
+                    // Quando o vídeo atual (seja Shorts ou comum) termina, avança para o próximo
+                    if (event.data === YT.PlayerState.ENDED) {
+                        indicePropAtual = (indicePropAtual + 1) % idsPlaylist.length;
+                        playerProp.loadVideoById(idsPlaylist[indicePropAtual]);
+                        aplicarRegraDeSomAtual();
+                    }
+                }
+            }
+        });
+    }
+
+    if (timerVerificacao) clearInterval(timerVerificacao);
+    timerVerificacao = setInterval(() => {
+        if (playerTv && playerTv.getPlayerState && playerTv.getPlayerState() !== YT.PlayerState.PLAYING) {
+            playerTv.playVideo();
+        }
+    }, 1000);
+}
+
+function aplicarRegraDeSomAtual() {
+    if (!dadosGlobais.sequenciaProps || dadosGlobais.sequenciaProps.length === 0) return;
+
+    const propAtual = dadosGlobais.sequenciaProps[indicePropAtual];
+    const indicador = document.getElementById('status-audio-tv');
+
+    if (propAtual && propAtual.comSom) {
+        if (playerTv && typeof playerTv.mute === 'function') playerTv.mute();
+        if (playerProp && typeof playerProp.unMute === 'function') playerProp.unMute();
+        if (indicador) {
+            indicador.innerText = `🎬 Propaganda com Som: ${propAtual.nome}`;
+            indicador.classList.remove('hidden');
+        }
+    } else {
+        if (playerTv && typeof playerTv.unMute === 'function') playerTv.unMute();
+        if (playerProp && typeof playerProp.mute === 'function') playerProp.mute();
+        if (indicador) {
+            indicador.classList.add('hidden');
+        }
+    }
+}
