@@ -21,10 +21,8 @@ let dadosGlobais = {
     ativoHorizontal: "jfKfPfyJRdk"
 };
 
-let playerTv = null;
 let playerProp = null;
 let indicePropAtual = 0;
-let timerVerificacao = null;
 
 // Ouve as alterações do Firebase em tempo real (Sincroniza celular e TV na hora)
 onSnapshot(docRef, (docSnap) => {
@@ -32,13 +30,10 @@ onSnapshot(docRef, (docSnap) => {
         dadosGlobais = docSnap.data();
         renderizarPainel();
         
-        // Se a TV estiver aberta e o canal ativo mudar na nuvem, atualiza o player horizontal
-        if (playerTv && typeof playerTv.loadVideoById === 'function') {
-            const currentVideoId = playerTv.getVideoData ? playerTv.getVideoData().video_id : '';
-            if (currentVideoId && currentVideoId !== dadosGlobais.ativoHorizontal) {
-                playerTv.loadVideoById(dadosGlobais.ativoHorizontal);
-                setTimeout(() => playerTv.playVideo(), 500);
-            }
+        // Se a TV estiver aberta e o canal ativo mudar na nuvem, atualiza o iframe horizontal na mesma hora
+        const viewTv = document.getElementById('view-tv');
+        if (viewTv && !viewTv.classList.contains('hidden')) {
+            atualizarCanalHorizontal();
         }
     } else {
         salvarNoFirebase(dadosGlobais);
@@ -66,9 +61,8 @@ window.mudarAba = function(aba) {
     } else {
         viewTv.classList.add('hidden');
         viewPainel.classList.remove('hidden');
-        if (timerVerificacao) clearInterval(timerVerificacao);
-        if (playerTv && typeof playerTv.destroy === 'function') playerTv.destroy();
         if (playerProp && typeof playerProp.destroy === 'function') playerProp.destroy();
+        document.getElementById('player-horizontal-container').innerHTML = '';
         renderizarPainel();
     }
 };
@@ -91,7 +85,7 @@ window.iniciarTransmissaoComSom = function() {
         console.log("Tela cheia não suportada ou bloqueada.", e);
     }
 
-    iniciarPlayersAPI();
+    iniciarTransmissaoTV();
 };
 
 function extrairIdYoutube(urlOuId) {
@@ -269,46 +263,34 @@ function renderizarPainel() {
     }
 }
 
-// Inicialização dos Players via API do YouTube com força total no Play da TV ao vivo
-function iniciarPlayersAPI() {
-    if (playerTv) playerTv.destroy();
-    if (playerProp) playerProp.destroy();
+// Inicia os players na tela da TV
+function iniciarTransmissaoTV() {
+    atualizarCanalHorizontal();
+    iniciarPlayerPropagandas();
+}
 
+function atualizarCanalHorizontal() {
     const containerTv = document.getElementById('player-horizontal-container');
-    if (containerTv) containerTv.innerHTML = '<div id="yt-player-tv"></div>';
+    if (!containerTv) return;
+
+    // Iframe puro para a TV ao vivo: garante autoplay imediato com som (`mute=0`)
+    containerTv.innerHTML = `
+        <iframe class="w-full h-full rounded-xl" 
+            src="https://www.youtube.com/embed/${dadosGlobais.ativoHorizontal}?autoplay=1&mute=0&loop=1&playlist=${dadosGlobais.ativoHorizontal}&controls=0&disablekb=1&modestbranding=1" 
+            title="TV ao Vivo" frameborder="0" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            allowfullscreen>
+        </iframe>
+    `;
+}
+
+// Player de Propagandas Vertical (Mantém a API do YouTube para gerenciar playlist e troca de áudio)
+function iniciarPlayerPropagandas() {
+    if (playerProp) playerProp.destroy();
 
     const containerProp = document.getElementById('player-vertical-container');
     if (containerProp) containerProp.innerHTML = '<div id="yt-player-prop"></div>';
 
-    // 1. Player TV ao Vivo (Horizontal)
-    playerTv = new YT.Player('yt-player-tv', {
-        height: '100%',
-        width: '100%',
-        videoId: dadosGlobais.ativoHorizontal,
-        playerVars: {
-            'autoplay': 1,
-            'mute': 0,
-            'controls': 0,
-            'disablekb': 1,
-            'modestbranding': 1,
-            'loop': 1,
-            'playlist': dadosGlobais.ativoHorizontal
-        },
-        events: {
-            'onReady': (event) => {
-                event.target.unMute();
-                event.target.playVideo();
-                // Reforço duplo de play após 800ms para garantir que o autoplay dispare
-                setTimeout(() => {
-                    if (event.target && typeof event.target.playVideo === 'function') {
-                        event.target.playVideo();
-                    }
-                }, 800);
-            }
-        }
-    });
-
-    // 2. Player Propagandas (Vertical)
     if (dadosGlobais.sequenciaProps.length > 0) {
         const idsPlaylist = dadosGlobais.sequenciaProps.map(p => p.id);
         indicePropAtual = 0;
@@ -340,17 +322,6 @@ function iniciarPlayersAPI() {
             }
         });
     }
-
-    // Monitoramento constante para forçar o player horizontal a rodar caso o navegador tente segurá-lo
-    if (timerVerificacao) clearInterval(timerVerificacao);
-    timerVerificacao = setInterval(() => {
-        if (playerTv && typeof playerTv.getPlayerState === 'function') {
-            const estado = playerTv.getPlayerState();
-            if (estado !== YT.PlayerState.PLAYING && estado !== YT.PlayerState.BUFFERING) {
-                playerTv.playVideo();
-            }
-        }
-    }, 1000);
 }
 
 function aplicarRegraDeSomAtual() {
@@ -360,14 +331,12 @@ function aplicarRegraDeSomAtual() {
     const indicador = document.getElementById('status-audio-tv');
 
     if (propAtual && propAtual.comSom) {
-        if (playerTv && typeof playerTv.mute === 'function') playerTv.mute();
         if (playerProp && typeof playerProp.unMute === 'function') playerProp.unMute();
         if (indicador) {
             indicador.innerText = `🎬 Propaganda com Som: ${propAtual.nome}`;
             indicador.classList.remove('hidden');
         }
     } else {
-        if (playerTv && typeof playerTv.unMute === 'function') playerTv.unMute();
         if (playerProp && typeof playerProp.mute === 'function') playerProp.mute();
         if (indicador) {
             indicador.classList.add('hidden');
