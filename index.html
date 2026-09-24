@@ -1,27 +1,27 @@
 <!DOCTYPE html>
-<html lang="pt-PT">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel - TV do Salão</title>
-    <!-- Configuração do PWA (Instalação no Telemóvel/TV) -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#030712">
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body class="bg-gray-950 text-white font-sans antialiased min-h-screen flex flex-col items-center p-6">
 
-    <!-- PAINEL DE CONTROLO -->
+    <!-- PAINEL DE CONTROLE -->
     <main id="view-painel" class="max-w-4xl w-full space-y-8 pb-12">
         <div class="text-center space-y-2">
-            <h1 class="text-3xl font-bold tracking-wide">📺 Painel de Controlo - TV do Salão</h1>
-            <p class="text-sm text-gray-400">Gestão em tempo real (Sincronizado na Nuvem).</p>
+            <h1 class="text-3xl font-bold tracking-wide">📺 Painel de Controle - TV do Salão</h1>
+            <p class="text-sm text-gray-400">Gerenciamento em tempo real (Sincronizado na Nuvem).</p>
         </div>
 
         <div>
             <button onclick="mudarAba('tv')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition shadow-lg text-lg flex items-center justify-center space-x-2">
-                <span>🚀 Abrir Ecrã do Salão (TV)</span>
+                <span>🚀 Abrir Tela do Salão</span>
             </button>
         </div>
 
@@ -37,12 +37,12 @@
                     <input type="text" id="input-nome-canal" placeholder="Nome do Canal (Ex: CNN)" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
                     <input type="text" id="input-link-canal" placeholder="Link ou ID do YouTube" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-blue-500">
                     <button onclick="adicionarCanal()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl transition text-sm">
-                        ➕ Guardar Canal
+                        ➕ Salvar Canal
                     </button>
                 </div>
 
                 <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
-                    <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wider">Canais Guardados:</h3>
+                    <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wider">Canais Salvos:</h3>
                     <div id="lista-canais" class="space-y-2"></div>
                 </div>
             </section>
@@ -64,12 +64,12 @@
                     </div>
 
                     <button onclick="adicionarPropaganda()" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-2.5 rounded-xl transition text-sm">
-                        ➕ Registar Propaganda
+                        ➕ Cadastrar Propaganda
                     </button>
                 </div>
 
                 <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
-                    <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wider">Vídeos Registados:</h3>
+                    <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wider">Vídeos Cadastrados:</h3>
                     <div id="lista-biblioteca-props" class="space-y-2"></div>
                 </div>
             </section>
@@ -83,7 +83,7 @@
                     <p class="text-xs text-gray-400 mt-1">Monte a ordem em que as propagandas vão passar na TV.</p>
                 </div>
                 <button onclick="salvarSequencia()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2.5 rounded-xl transition text-sm shadow">
-                    💾 Guardar Sequência
+                    💾 Salvar Sequência
                 </button>
             </div>
 
@@ -100,15 +100,17 @@
         </section>
     </main>
 
-    <!-- ECRÃ DA TV -->
+    <!-- TELA DA TV -->
     <main id="view-tv" class="hidden fixed inset-0 bg-black flex w-screen h-screen overflow-hidden">
-        <div id="modal-ativar-som" class="absolute inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-6 space-y-4">
+        
+        <!-- Botão/Modal de Ativar Som (Exigido pelo navegador para liberar o áudio completo) -->
+        <div id="modal-ativar-som" class="absolute inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-6 space-y-4">
             <div class="text-center space-y-2 max-w-md">
-                <h2 class="text-2xl font-bold text-emerald-400">📺 TV do Salão Pronta</h2>
-                <p class="text-sm text-gray-300">Clique abaixo para iniciar ambos os leitores automaticamente em ecrã inteiro com som.</p>
+                <h2 class="text-2xl font-bold text-emerald-400">📺 Tela do Salão Pronta</h2>
+                <p class="text-sm text-gray-300">Clique no botão abaixo para habilitar o som e iniciar a exibição.</p>
             </div>
-            <button onclick="iniciarTransmissaoComSom()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-4 rounded-2xl transition shadow-2xl text-lg flex items-center space-x-2">
-                <span>🔊 Iniciar Transmissão Automática</span>
+            <button onclick="ativarSomETelaCheia()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-4 rounded-2xl transition shadow-2xl text-lg flex items-center space-x-2">
+                <span>🔊 Ativar Som</span>
             </button>
         </div>
 
@@ -117,21 +119,24 @@
         </button>
 
         <div id="status-audio-tv" class="absolute top-4 right-4 z-40 bg-black/75 text-white/80 px-3 py-1.5 rounded-xl text-xs backdrop-blur border border-white/10 hidden">
-            🔊 Propaganda com Som
+            🔊 Som Ativado
         </div>
 
-        <!-- Lado Esquerdo: Área Principal da TV (Horizontal) -->
+        <!-- Lado Esquerdo: Player Horizontal (Canais de TV) -->
         <div class="flex-1 h-full bg-black flex items-center justify-center p-2 relative">
-            <div id="player-horizontal-container" class="w-full h-full flex items-center justify-center"></div>
+            <div id="player-horizontal-container" class="w-full h-full flex items-center justify-center">
+                <div id="yt-player-tv"></div>
+            </div>
         </div>
 
-        <!-- Lado Direito: Área de Propaganda (Vertical / Shorts) -->
+        <!-- Lado Direito: Player Vertical (Propagandas / Shorts) -->
         <div class="w-[320px] lg:w-[360px] h-full bg-zinc-950 border-l border-zinc-900 flex flex-col items-center justify-center relative p-2">
-            <div id="player-vertical-container" class="w-full h-full flex items-center justify-center"></div>
+            <div id="player-vertical-container" class="w-full h-full flex items-center justify-center">
+                <div id="yt-player-prop"></div>
+            </div>
         </div>
     </main>
 
-    <!-- Registo do PWA -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -139,8 +144,6 @@
             });
         }
     </script>
-
-    <!-- Script principal com type="module" obrigatório para o Firebase -->
     <script type="module" src="app.js"></script>
 </body>
 </html>
