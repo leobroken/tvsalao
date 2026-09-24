@@ -54,6 +54,21 @@ window.mudarAba = function(aba) {
         viewPainel.classList.add('hidden');
         viewTv.classList.remove('hidden');
         if (modalSom) modalSom.classList.remove('hidden');
+
+        // Força a Tela Cheia Real (Modo Imersivo) para esconder relógio, bateria e botões de navegação
+        try {
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.webkitRequestFullscreen) { /* Safari/iOS */
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) { /* IE/Edge */
+                elem.msRequestFullscreen();
+            }
+        } catch (e) {
+            console.log("Modo tela cheia não suportado ou bloqueado.", e);
+        }
+
     } else {
         viewTv.classList.add('hidden');
         viewPainel.classList.remove('hidden');
