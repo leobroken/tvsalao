@@ -10,6 +10,22 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
+    <style>
+        /* Força os players a preencherem todo o espaço dos containers eliminando as bordas pretas */
+        .video-preenchimento iframe, 
+        .video-preenchimento object, 
+        .video-preenchimento embed,
+        .video-preenchimento div {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+        }
+        /* Aplica zoom leve para garantir cobertura total sem distorção */
+        .zoom-preenchimento {
+            transform: scale(1.05);
+            transform-origin: center center;
+        }
+    </style>
 </head>
 <body class="bg-gray-950 text-white font-sans antialiased min-h-screen flex flex-col items-center p-6">
 
@@ -121,14 +137,16 @@
             🔊 TV ao Vivo com Som
         </div>
 
-        <div class="flex-1 h-full bg-black flex items-center justify-center p-2 relative">
-            <div id="player-horizontal-container" class="w-full h-full flex items-center justify-center">
+        <!-- Player Horizontal com classe de preenchimento total -->
+        <div class="flex-1 h-full bg-black flex items-center justify-center relative overflow-hidden video-preenchimento">
+            <div id="player-horizontal-container" class="w-full h-full flex items-center justify-center zoom-preenchimento">
                 <div id="yt-player-tv"></div>
             </div>
         </div>
 
-        <div class="w-[320px] lg:w-[360px] h-full bg-zinc-950 border-l border-zinc-900 flex flex-col items-center justify-center relative p-2">
-            <div id="player-vertical-container" class="w-full h-full flex items-center justify-center">
+        <!-- Player Vertical com classe de preenchimento total -->
+        <div class="w-[320px] lg:w-[360px] h-full bg-zinc-950 border-l border-zinc-900 flex flex-col items-center justify-center relative overflow-hidden video-preenchimento">
+            <div id="player-vertical-container" class="w-full h-full flex items-center justify-center zoom-preenchimento">
                 <div id="yt-player-prop"></div>
             </div>
         </div>
