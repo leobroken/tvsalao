@@ -67,6 +67,21 @@ window.mudarAba = function(aba) {
 window.iniciarTransmissaoComSom = function() {
     const modalSom = document.getElementById('modal-ativar-som');
     if (modalSom) modalSom.classList.add('hidden');
+
+    // Ativa o Modo Tela Cheia Real (Oculta relógio, barra de status e botões de navegação)
+    try {
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen();
+        } else if (elem.webkitRequestFullscreen) { /* Safari/iOS */
+            elem.webkitRequestFullscreen();
+        } else if (elem.msRequestFullscreen) { /* IE/Edge */
+            elem.msRequestFullscreen();
+        }
+    } catch (e) {
+        console.log("Tela cheia não suportada ou bloqueada.", e);
+    }
+
     iniciarPlayersAPI();
 };
 
@@ -250,7 +265,6 @@ function iniciarPlayersAPI() {
     if (playerTv) playerTv.destroy();
     if (playerProp) playerProp.destroy();
 
-    // Garante que os containers internos existam antes de instanciar os players
     const containerTv = document.getElementById('player-horizontal-container');
     if (containerTv) containerTv.innerHTML = '<div id="yt-player-tv"></div>';
 
@@ -279,7 +293,7 @@ function iniciarPlayersAPI() {
         }
     });
 
-    // 2. Player Propagandas (Vertical - Compatível com Shorts e Vídeos Normais)
+    // 2. Player Propagandas (Vertical)
     if (dadosGlobais.sequenciaProps.length > 0) {
         const idsPlaylist = dadosGlobais.sequenciaProps.map(p => p.id);
         indicePropAtual = 0;
@@ -302,7 +316,6 @@ function iniciarPlayersAPI() {
                     aplicarRegraDeSomAtual();
                 },
                 'onStateChange': (event) => {
-                    // Quando o vídeo atual (seja Shorts ou comum) termina, avança para o próximo
                     if (event.data === YT.PlayerState.ENDED) {
                         indicePropAtual = (indicePropAtual + 1) % idsPlaylist.length;
                         playerProp.loadVideoById(idsPlaylist[indicePropAtual]);
