@@ -238,7 +238,7 @@ function renderizarPainel() {
                         <button onclick="selecionarCanalAtivo('${canal.id}')" class="px-2 py-1 font-bold rounded ${ativo ? 'bg-blue-600 text-white' : 'bg-gray-800 hover:bg-gray-700 text-gray-300'}">
                             ${ativo ? 'Transmitindo' : 'Usar'}
                         </button>
-                        <button onclick="removerCanal(${index})" class="text-red-400 hover:text-red-300 p-1">🗑️️</button>
+                        <button onclick="removerCanal(${index})" class="text-red-400 hover:text-red-300 p-1">🗑️</button>
                     </div>
                 </div>
             `;
@@ -299,12 +299,11 @@ function renderizarPainel() {
     }
 }
 
-// Inicialização dos Players via API do YouTube com suporte a Shorts
+// Inicialização dos Players via API do YouTube com memória de reprodução
 function iniciarPlayersAPI() {
     if (playerTv) playerTv.destroy();
     if (playerProp) playerProp.destroy();
 
-    // Garante que os containers internos existam antes de instanciar os players
     const containerTv = document.getElementById('player-horizontal-container');
     if (containerTv) containerTv.innerHTML = '<div id="yt-player-tv"></div>';
 
@@ -333,15 +332,22 @@ function iniciarPlayersAPI() {
         }
     });
 
-    // 2. Player Propagandas (Vertical - Compatível com Shorts e Vídeos Normais)
+    // 2. Player Propagandas (Vertical - Retoma de onde parou usando localStorage)
     if (dadosGlobais.sequenciaProps.length > 0) {
         const idsPlaylist = dadosGlobais.sequenciaProps.map(p => p.id);
-        indicePropAtual = 0;
+        
+        // Recupera o índice salvo anteriormente (se existir e for válido)
+        const indiceSalvo = localStorage.getItem('tv_salao_indice_prop');
+        if (indiceSalvo !== null && parseInt(indiceSalvo) < idsPlaylist.length) {
+            indicePropAtual = parseInt(indiceSalvo);
+        } else {
+            indicePropAtual = 0;
+        }
 
         playerProp = new YT.Player('yt-player-prop', {
             height: '100%',
             width: '100%',
-            videoId: idsPlaylist[0],
+            videoId: idsPlaylist[indicePropAtual],
             playerVars: {
                 'autoplay': 1,
                 'mute': 1,
@@ -356,9 +362,10 @@ function iniciarPlayersAPI() {
                     aplicarRegraDeSomAtual();
                 },
                 'onStateChange': (event) => {
-                    // Quando o vídeo atual (seja Shorts ou comum) termina, avança para o próximo
                     if (event.data === YT.PlayerState.ENDED) {
                         indicePropAtual = (indicePropAtual + 1) % idsPlaylist.length;
+                        // Salva o novo índice atual na memória do navegador
+                        localStorage.setItem('tv_salao_indice_prop', indicePropAtual);
                         playerProp.loadVideoById(idsPlaylist[indicePropAtual]);
                         aplicarRegraDeSomAtual();
                     }
