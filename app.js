@@ -18,7 +18,9 @@ let dadosGlobais = {
     canais: [{ id: "jfKfPfyJRdk", nome: "Canal Padrão (Exemplo)" }],
     bibliotecaProps: [{ id: "jfKfPfyJRdk", nome: "Propaganda Padrão", comSom: false }],
     sequenciaProps: [{ id: "jfKfPfyJRdk", nome: "Propaganda Padrão", comSom: false }],
-    ativoHorizontal: "jfKfPfyJRdk"
+    ativoHorizontal: "jfKfPfyJRdk",
+    volumeTv: 100,
+    volumeProp: 100
 };
 
 let playerTv = null;
@@ -52,12 +54,18 @@ onSnapshot(docRef, (docSnap) => {
         dadosGlobais = novosDados;
         renderizarPainel();
         
+        // Atualiza volumes em tempo real se a TV estiver aberta
+        aplicarVolumesNosPlayers();
+
         // Se a TV do salão estiver aberta e o canal ativo mudar, troca e toca na hora automaticamente!
         const viewTv = document.getElementById('view-tv');
         if (viewTv && !viewTv.classList.contains('hidden')) {
             if (playerTv && typeof playerTv.loadVideoById === 'function' && canalAntigo !== dadosGlobais.ativoHorizontal) {
                 playerTv.loadVideoById(dadosGlobais.ativoHorizontal);
-                setTimeout(() => playerTv.playVideo(), 500);
+                setTimeout(() => {
+                    playerTv.playVideo();
+                    aplicarVolumesNosPlayers();
+                }, 500);
             }
         }
     } else {
@@ -73,6 +81,38 @@ async function salvarNoFirebase(dados) {
     }
 }
 
+// Funções para alterar e sincronizar os volumes
+window.alterarVolumeTv = function(valor) {
+    dadosGlobais.volumeTv = parseInt(valor);
+    const label = document.getElementById('label-vol-tv');
+    if (label) label.innerText = `${valor}%`;
+    salvarNoFirebase(dadosGlobais);
+};
+
+window.alterarVolumeProp = function(valor) {
+    dadosGlobais.volumeProp = parseInt(valor);
+    const label = document.getElementById('label-vol-prop');
+    if (label) label.innerText = `${valor}%`;
+    salvarNoFirebase(dadosGlobais);
+};
+
+function aplicarVolumesNosPlayers() {
+    // 1. Aplica volume no player de TV
+    if (playerTv && typeof playerTv.setVolume === 'function') {
+        playerTv.setVolume(dadosGlobais.volumeTv !== undefined ? dadosGlobais.volumeTv : 100);
+        if (dadosGlobais.volumeTv > 0 && playerTv.isMuted && playerTv.isMuted()) {
+            playerTv.unMute();
+        } else if (dadosGlobais.volumeTv === 0 && playerTv.mute) {
+            playerTv.mute();
+        }
+    }
+
+    // 2. Aplica volume no player de propagandas (respeitando se a propaganda atual é muda ou com som)
+    if (playerProp && typeof playerProp.setVolume === 'function') {
+        playerProp.setVolume(dadosGlobais.volumeProp !== undefined ? dadosGlobais.volumeProp : 100);
+    }
+}
+
 // Expõe as funções globalmente para funcionarem nos botões HTML (onclick)
 window.mudarAba = function(aba) {
     const viewPainel = document.getElementById('view-painel');
@@ -84,15 +124,12 @@ window.mudarAba = function(aba) {
         viewTv.classList.remove('hidden');
         if (modalSom) modalSom.classList.remove('hidden');
 
-        // Força a Tela Cheia Real (Modo Imersivo)
         try {
             const elem = document.documentElement;
             if (elem.requestFullscreen) {
                 elem.requestFullscreen();
-            } else if (elem.webkitRequestFullscreen) { /* Safari/iOS */
+            } else if (elem.webkitRequestFullscreen) {
                 elem.webkitRequestFullscreen();
-            } else if (elem.msRequestFullscreen) { /* IE/Edge */
-                elem.msRequestFullscreen();
             }
         } catch (e) {
             console.log("Modo tela cheia não suportado ou bloqueado.", e);
@@ -128,7 +165,6 @@ function extrairIdYoutube(urlOuId) {
     if (!urlOuId) return '';
     let id = urlOuId.trim();
     
-    // Suporte a links de Shorts do YouTube (ex: youtube.com/shorts/ID)
     if (id.includes('/shorts/')) {
         const partes = id.split('/shorts/');
         if (partes[1]) {
@@ -136,7 +172,6 @@ function extrairIdYoutube(urlOuId) {
         }
     }
 
-    // Suporte a links de live do tipo youtube.com/live/ID_DO_VIDEO
     if (id.includes('/live/')) {
         const partes = id.split('/live/');
         if (partes[1]) {
@@ -152,9 +187,8 @@ function extrairIdYoutube(urlOuId) {
         }
     }
     return id;
-};
+}
 
-// Funções de manipulação vinculadas ao window para salvar no Firebase
 window.adicionarCanal = function() {
     const nome = document.getElementById('input-nome-canal').value.trim();
     const link = document.getElementById('input-link-canal').value.trim();
@@ -225,6 +259,21 @@ window.salvarSequencia = function() {
 };
 
 function renderizarPainel() {
+    // Atualiza os sliders de volume na interface do painel
+    const rangeTv = document.getElementById('range-vol-tv');
+    const labelTv = document.getElementById('label-vol-tv');
+    if (rangeTv && dadosGlobais.volumeTv !== undefined) {
+        rangeTv.value = dadosGlobais.volumeTv;
+        if (labelTv) labelTv.innerText = `${dadosGlobais.volumeTv}%`;
+    }
+
+    const rangeProp = document.getElementById('range-vol-prop');
+    const labelProp = document.getElementById('label-vol-prop');
+    if (rangeProp && dadosGlobais.volumeProp !== undefined) {
+        rangeProp.value = dadosGlobais.volumeProp;
+        if (labelProp) labelProp.innerText = `${dadosGlobais.volumeProp}%`;
+    }
+
     // Canais
     const containerCanais = document.getElementById('lista-canais');
     if (containerCanais) {
@@ -238,7 +287,7 @@ function renderizarPainel() {
                         <button onclick="selecionarCanalAtivo('${canal.id}')" class="px-2 py-1 font-bold rounded ${ativo ? 'bg-blue-600 text-white' : 'bg-gray-800 hover:bg-gray-700 text-gray-300'}">
                             ${ativo ? 'Transmitindo' : 'Usar'}
                         </button>
-                        <button onclick="removerCanal(${index})" class="text-red-400 hover:text-red-300 p-1">🗑</button>
+                        <button onclick="removerCanal(${index})" class="text-red-400 hover:text-red-300 p-1">🗑️</button>
                     </div>
                 </div>
             `;
@@ -256,7 +305,7 @@ function renderizarPainel() {
                         <span class="font-medium">${prop.nome}</span>
                         <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded ${prop.comSom ? 'bg-pink-900/60 text-pink-300' : 'bg-gray-800 text-gray-400'}">${prop.comSom ? '🔊 Com Som' : '🔇 Mudo'}</span>
                     </div>
-                    <button onclick="removerPropagandaBiblioteca(${index})" class="text-red-400 hover:text-red-300 p-1 shrink-0">🗑</button>
+                    <button onclick="removerPropagandaBiblioteca(${index})" class="text-red-400 hover:text-red-300 p-1 shrink-0">🗑️</button>
                 </div>
             `;
         });
@@ -299,7 +348,7 @@ function renderizarPainel() {
     }
 }
 
-// Inicialização dos Players via API do YouTube com memória de reprodução
+// Inicialização dos Players via API do YouTube com suporte a volumes independentes
 function iniciarPlayersAPI() {
     if (playerTv) playerTv.destroy();
     if (playerProp) playerProp.destroy();
@@ -327,6 +376,7 @@ function iniciarPlayersAPI() {
         events: {
             'onReady': (event) => {
                 event.target.unMute();
+                aplicarVolumesNosPlayers();
                 event.target.playVideo();
             }
         }
@@ -358,6 +408,7 @@ function iniciarPlayersAPI() {
             events: {
                 'onReady': (event) => {
                     event.target.playVideo();
+                    aplicarVolumesNosPlayers();
                     aplicarRegraDeSomAtual();
                 },
                 'onStateChange': (event) => {
@@ -365,6 +416,7 @@ function iniciarPlayersAPI() {
                         indicePropAtual = (indicePropAtual + 1) % idsPlaylist.length;
                         localStorage.setItem('tv_salao_indice_prop', indicePropAtual);
                         playerProp.loadVideoById(idsPlaylist[indicePropAtual]);
+                        aplicarVolumesNosPlayers();
                         aplicarRegraDeSomAtual();
                     }
                 }
