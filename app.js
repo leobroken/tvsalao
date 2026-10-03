@@ -152,7 +152,7 @@ function extrairIdYoutube(urlOuId) {
         }
     }
     return id;
-}
+};
 
 // Funções de manipulação vinculadas ao window para salvar no Firebase
 window.adicionarCanal = function() {
@@ -238,7 +238,7 @@ function renderizarPainel() {
                         <button onclick="selecionarCanalAtivo('${canal.id}')" class="px-2 py-1 font-bold rounded ${ativo ? 'bg-blue-600 text-white' : 'bg-gray-800 hover:bg-gray-700 text-gray-300'}">
                             ${ativo ? 'Transmitindo' : 'Usar'}
                         </button>
-                        <button onclick="removerCanal(${index})" class="text-red-400 hover:text-red-300 p-1">🗑️</button>
+                        <button onclick="removerCanal(${index})" class="text-red-400 hover:text-red-300 p-1">🗑</button>
                     </div>
                 </div>
             `;
@@ -256,7 +256,7 @@ function renderizarPainel() {
                         <span class="font-medium">${prop.nome}</span>
                         <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded ${prop.comSom ? 'bg-pink-900/60 text-pink-300' : 'bg-gray-800 text-gray-400'}">${prop.comSom ? '🔊 Com Som' : '🔇 Mudo'}</span>
                     </div>
-                    <button onclick="removerPropagandaBiblioteca(${index})" class="text-red-400 hover:text-red-300 p-1 shrink-0">🗑️</button>
+                    <button onclick="removerPropagandaBiblioteca(${index})" class="text-red-400 hover:text-red-300 p-1 shrink-0">🗑</button>
                 </div>
             `;
         });
@@ -332,11 +332,10 @@ function iniciarPlayersAPI() {
         }
     });
 
-    // 2. Player Propagandas (Vertical - Retoma de onde parou usando localStorage)
+    // 2. Player Propagandas (Vertical)
     if (dadosGlobais.sequenciaProps.length > 0) {
         const idsPlaylist = dadosGlobais.sequenciaProps.map(p => p.id);
         
-        // Recupera o índice salvo anteriormente (se existir e for válido)
         const indiceSalvo = localStorage.getItem('tv_salao_indice_prop');
         if (indiceSalvo !== null && parseInt(indiceSalvo) < idsPlaylist.length) {
             indicePropAtual = parseInt(indiceSalvo);
@@ -364,7 +363,6 @@ function iniciarPlayersAPI() {
                 'onStateChange': (event) => {
                     if (event.data === YT.PlayerState.ENDED) {
                         indicePropAtual = (indicePropAtual + 1) % idsPlaylist.length;
-                        // Salva o novo índice atual na memória do navegador
                         localStorage.setItem('tv_salao_indice_prop', indicePropAtual);
                         playerProp.loadVideoById(idsPlaylist[indicePropAtual]);
                         aplicarRegraDeSomAtual();
