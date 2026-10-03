@@ -44,11 +44,22 @@ document.addEventListener('visibilitychange', async () => {
     }
 });
 
-// Ouve as alterações do Firebase em tempo real (Sincroniza celular e TV na hora)
+// Ouve as alterações do Firebase em tempo real (Sincroniza telemóvel e TV na hora)
 onSnapshot(docRef, (docSnap) => {
     if (docSnap.exists()) {
-        dadosGlobais = docSnap.data();
+        const novosDados = docSnap.data();
+        const canalAntigo = dadosGlobais.ativoHorizontal;
+        dadosGlobais = novosDados;
         renderizarPainel();
+        
+        // Se a TV do salão estiver aberta e o canal ativo mudar, troca e toca na hora automaticamente!
+        const viewTv = document.getElementById('view-tv');
+        if (viewTv && !viewTv.classList.contains('hidden')) {
+            if (playerTv && typeof playerTv.loadVideoById === 'function' && canalAntigo !== dadosGlobais.ativoHorizontal) {
+                playerTv.loadVideoById(dadosGlobais.ativoHorizontal);
+                setTimeout(() => playerTv.playVideo(), 500);
+            }
+        }
     } else {
         salvarNoFirebase(dadosGlobais);
     }
@@ -117,6 +128,7 @@ function extrairIdYoutube(urlOuId) {
     if (!urlOuId) return '';
     let id = urlOuId.trim();
     
+    // Suporte a links de Shorts do YouTube (ex: youtube.com/shorts/ID)
     if (id.includes('/shorts/')) {
         const partes = id.split('/shorts/');
         if (partes[1]) {
@@ -124,6 +136,7 @@ function extrairIdYoutube(urlOuId) {
         }
     }
 
+    // Suporte a links de live do tipo youtube.com/live/ID_DO_VIDEO
     if (id.includes('/live/')) {
         const partes = id.split('/live/');
         if (partes[1]) {
@@ -212,6 +225,7 @@ window.salvarSequencia = function() {
 };
 
 function renderizarPainel() {
+    // Canais
     const containerCanais = document.getElementById('lista-canais');
     if (containerCanais) {
         containerCanais.innerHTML = dadosGlobais.canais.length === 0 ? '<p class="text-xs text-gray-500 italic">Nenhum canal.</p>' : '';
@@ -224,13 +238,14 @@ function renderizarPainel() {
                         <button onclick="selecionarCanalAtivo('${canal.id}')" class="px-2 py-1 font-bold rounded ${ativo ? 'bg-blue-600 text-white' : 'bg-gray-800 hover:bg-gray-700 text-gray-300'}">
                             ${ativo ? 'Transmitindo' : 'Usar'}
                         </button>
-                        <button onclick="removerCanal(${index})" class="text-red-400 hover:text-red-300 p-1">🗑️</button>
+                        <button onclick="removerCanal(${index})" class="text-red-400 hover:text-red-300 p-1">🗑️️</button>
                     </div>
                 </div>
             `;
         });
     }
 
+    // Biblioteca de Propagandas
     const containerBib = document.getElementById('lista-biblioteca-props');
     if (containerBib) {
         containerBib.innerHTML = dadosGlobais.bibliotecaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Nenhuma propaganda.</p>' : '';
@@ -247,6 +262,7 @@ function renderizarPainel() {
         });
     }
 
+    // Seletor Sequência
     const containerSeletor = document.getElementById('seletor-adicionar-sequencia');
     if (containerSeletor) {
         containerSeletor.innerHTML = dadosGlobais.bibliotecaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Cadastre propagandas acima.</p>' : '';
@@ -264,6 +280,7 @@ function renderizarPainel() {
         });
     }
 
+    // Sequência Atual
     const containerSeq = document.getElementById('lista-sequencia-atual');
     if (containerSeq) {
         containerSeq.innerHTML = dadosGlobais.sequenciaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Sequência vazia.</p>' : '';
@@ -287,6 +304,7 @@ function iniciarPlayersAPI() {
     if (playerTv) playerTv.destroy();
     if (playerProp) playerProp.destroy();
 
+    // Garante que os containers internos existam antes de instanciar os players
     const containerTv = document.getElementById('player-horizontal-container');
     if (containerTv) containerTv.innerHTML = '<div id="yt-player-tv"></div>';
 
@@ -315,7 +333,7 @@ function iniciarPlayersAPI() {
         }
     });
 
-    // 2. Player Propagandas (Vertical)
+    // 2. Player Propagandas (Vertical - Compatível com Shorts e Vídeos Normais)
     if (dadosGlobais.sequenciaProps.length > 0) {
         const idsPlaylist = dadosGlobais.sequenciaProps.map(p => p.id);
         indicePropAtual = 0;
@@ -338,6 +356,7 @@ function iniciarPlayersAPI() {
                     aplicarRegraDeSomAtual();
                 },
                 'onStateChange': (event) => {
+                    // Quando o vídeo atual (seja Shorts ou comum) termina, avança para o próximo
                     if (event.data === YT.PlayerState.ENDED) {
                         indicePropAtual = (indicePropAtual + 1) % idsPlaylist.length;
                         playerProp.loadVideoById(idsPlaylist[indicePropAtual]);
