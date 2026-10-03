@@ -23,7 +23,6 @@
             transform: scale(1.05);
             transform-origin: center center;
         }
-        /* Adaptação automática para ecrãs na vertical ou horizontal */
         @media (orientation: portrait) {
             #view-tv {
                 flex-direction: column !important;
@@ -51,6 +50,34 @@
                 <span>🚀 Abrir Tela do Salão (TV)</span>
             </button>
         </div>
+
+        <!-- SEÇÃO: CONTROLES DE VOLUME INDEPENDENTES -->
+        <section class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-xl space-y-4">
+            <div class="border-b border-gray-800 pb-3">
+                <h2 class="text-lg font-semibold text-yellow-400">🎚️ Controle de Volume Remoto</h2>
+                <p class="text-xs text-gray-400">Ajuste o som da TV e das propagandas diretamente por aqui.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                <!-- Volume TV -->
+                <div class="space-y-2 bg-gray-950 p-4 rounded-xl border border-gray-800">
+                    <div class="flex justify-between text-xs font-medium">
+                        <span class="text-blue-400">📺 Volume dos Canais (TV)</span>
+                        <span id="label-vol-tv" class="text-gray-300">100%</span>
+                    </div>
+                    <input type="range" id="range-vol-tv" min="0" max="100" value="100" oninput="alterarVolumeTv(this.value)" class="w-full accent-blue-500 cursor-pointer">
+                </div>
+
+                <!-- Volume Propagandas -->
+                <div class="space-y-2 bg-gray-950 p-4 rounded-xl border border-gray-800">
+                    <div class="flex justify-between text-xs font-medium">
+                        <span class="text-pink-400">🎬 Volume das Propagandas</span>
+                        <span id="label-vol-prop" class="text-gray-300">100%</span>
+                    </div>
+                    <input type="range" id="range-vol-prop" min="0" max="100" value="100" oninput="alterarVolumeProp(this.value)" class="w-full accent-pink-500 cursor-pointer">
+                </div>
+            </div>
+        </section>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- SEÇÃO 1: CANAIS DE TV -->
