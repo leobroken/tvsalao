@@ -4,14 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel - TV do Salão</title>
-    <!-- Configuração do PWA (Instalação no Celular) -->
+    <!-- Configuração do PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#030712">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
     <style>
-        /* Força os players a preencherem todo o espaço dos containers eliminando as bordas pretas */
         .video-preenchimento iframe, 
         .video-preenchimento object, 
         .video-preenchimento embed,
@@ -20,10 +19,21 @@
             height: 100% !important;
             object-fit: cover !important;
         }
-        /* Aplica zoom leve para garantir cobertura total sem distorção */
         .zoom-preenchimento {
             transform: scale(1.05);
             transform-origin: center center;
+        }
+        /* Adaptação automática para ecrãs na vertical ou horizontal */
+        @media (orientation: portrait) {
+            #view-tv {
+                flex-direction: column !important;
+            }
+            #view-tv > div:last-child {
+                width: 100% !important;
+                height: 35vh !important;
+                border-left: none !important;
+                border-top: 1px solid rgba(255,255,255,0.1);
+            }
         }
     </style>
 </head>
@@ -137,14 +147,14 @@
             🔊 TV ao Vivo com Som
         </div>
 
-        <!-- Player Horizontal com classe de preenchimento total -->
+        <!-- Player Horizontal -->
         <div class="flex-1 h-full bg-black flex items-center justify-center relative overflow-hidden video-preenchimento">
             <div id="player-horizontal-container" class="w-full h-full flex items-center justify-center zoom-preenchimento">
                 <div id="yt-player-tv"></div>
             </div>
         </div>
 
-        <!-- Player Vertical com classe de preenchimento total -->
+        <!-- Player Vertical -->
         <div class="w-[320px] lg:w-[360px] h-full bg-zinc-950 border-l border-zinc-900 flex flex-col items-center justify-center relative overflow-hidden video-preenchimento">
             <div id="player-vertical-container" class="w-full h-full flex items-center justify-center zoom-preenchimento">
                 <div id="yt-player-prop"></div>
