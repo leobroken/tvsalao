@@ -11,6 +11,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
     <style>
+        /* Desativa a seleção de texto em toda a página para evitar seleções indesejadas ao clicar */
+        * {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
         .video-preenchimento iframe, 
         .video-preenchimento object, 
         .video-preenchimento embed,
