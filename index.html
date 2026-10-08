@@ -11,7 +11,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.youtube.com/iframe_api"></script>
     <style>
-        /* Força os players a preencherem absolutamente todo o espaço do container */
         .video-preenchimento iframe, 
         .video-preenchimento object, 
         .video-preenchimento embed,
@@ -23,10 +22,12 @@
             top: 0 !important;
             left: 0 !important;
         }
-        /* Aumentado para 1.35 para esticar e sumir completamente com as bordas pretas */
-        .zoom-preenchimento {
-            transform: scale(1.35);
+        /* Elemento interativo para suportar zoom por toque e arrastar */
+        .zoom-touch-container {
+            transform: scale(1.35) translate(0px, 0px);
             transform-origin: center center;
+            touch-action: none; /* Desativa comportamentos padrões de scroll para priorizar o gesto */
+            will-change: transform;
         }
         @media (orientation: portrait) {
             #view-tv {
@@ -179,28 +180,87 @@
             🔊 TV ao Vivo com Som
         </div>
 
-        <!-- Player Horizontal com Zoom Expandido (1.35) -->
-        <div class="flex-1 h-full bg-black flex items-center justify-center relative overflow-hidden video-preenchimento">
-            <div id="player-horizontal-container" class="w-full h-full flex items-center justify-center zoom-preenchimento absolute inset-0">
+        <!-- Player Horizontal com suporte a Gestos Touch -->
+        <div id="wrapper-horizontal" class="flex-1 h-full bg-black flex items-center justify-center relative overflow-hidden video-preenchimento">
+            <div id="player-horizontal-container" class="w-full h-full flex items-center justify-center zoom-touch-container absolute inset-0">
                 <div id="yt-player-tv" class="w-full h-full"></div>
             </div>
         </div>
 
-        <!-- Player Vertical -->
-        <div class="w-[320px] lg:w-[360px] h-full bg-zinc-950 border-l border-zinc-900 flex flex-col items-center justify-center relative overflow-hidden video-preenchimento">
-            <div id="player-vertical-container" class="w-full h-full flex items-center justify-center zoom-preenchimento absolute inset-0">
+        <!-- Player Vertical com suporte a Gestos Touch -->
+        <div id="wrapper-vertical" class="w-[320px] lg:w-[360px] h-full bg-zinc-950 border-l border-zinc-900 flex flex-col items-center justify-center relative overflow-hidden video-preenchimento">
+            <div id="player-vertical-container" class="w-full h-full flex items-center justify-center zoom-touch-container absolute inset-0">
                 <div id="yt-player-prop" class="w-full h-full"></div>
             </div>
         </div>
     </main>
 
+    <!-- Script para gestos de pinça (zoom) e arrastar com os dedos -->
+    <script>
+        function ativarGestosTouch(wrapperId, containerId) {
+            const wrapper = document.getElementById(wrapperId);
+            const container = document.getElementById(containerId);
+            if (!wrapper || !container) return;
+
+            let scale = 1.35;
+            let posX = 0;
+            let posY = 0;
+            let startDist = 0;
+            let startX = 0;
+            let startY = 0;
+            let isDragging = false;
+            let startTouchX = 0;
+            let startTouchY = 0;
+
+            wrapper.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 2) {
+                    isDragging = false;
+                    startDist = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                } else if (e.touches.length === 1) {
+                    isDragging = true;
+                    startTouchX = e.touches[0].clientX - posX;
+                    startTouchY = e.touches[0].clientY - posY;
+                }
+            }, { passive: true });
+
+            wrapper.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 2) {
+                    const currentDist = Math.hypot(
+                        e.touches[0].clientX - e.touches[1].clientX,
+                        e.touches[0].clientY - e.touches[1].clientY
+                    );
+                    if (startDist > 0) {
+                        const factor = currentDist / startDist;
+                        scale = Math.max(1.0, Math.min(3.0, scale * (factor > 1 ? 1.02 : 0.98)));
+                        container.style.transform = `scale(${scale}) translate(${posX}px, ${posY}px)`;
+                    }
+                } else if (e.touches.length === 1 && isDragging) {
+                    posX = e.touches[0].clientX - startTouchX;
+                    posY = e.touches[0].clientY - startTouchY;
+                    container.style.transform = `scale(${scale}) translate(${posX}px, ${posY}px)`;
+                }
+            }, { passive: true });
+
+            wrapper.addEventListener('touchend', () => {
+                isDragging = false;
+                startDist = 0;
+            });
+        }
+
+        window.addEventListener('load', () => {
+            ativarGestosTouch('wrapper-horizontal', 'player-horizontal-container');
+            ativarGestosTouch('wrapper-vertical', 'player-vertical-container');
+        });
+    </script>
+
     <!-- Script para registrar o Service Worker do PWA -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then((reg) => console.log('Service Worker registrado com sucesso!', reg))
-                    .catch((err) => console.log('Erro ao registrar Service Worker:', err));
+                navigator.serviceWorker.register('./sw.js').catch(() => {});
             });
         }
     </script>
