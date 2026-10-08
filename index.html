@@ -23,9 +23,9 @@
             top: 0 !important;
             left: 0 !important;
         }
-        /* Ajuste de escala ideal para cobrir as bordas pretas sem distorcer */
+        /* Aumentado para 1.35 para esticar e sumir completamente com as bordas pretas */
         .zoom-preenchimento {
-            transform: scale(1.15);
+            transform: scale(1.35);
             transform-origin: center center;
         }
         @media (orientation: portrait) {
@@ -179,7 +179,7 @@
             🔊 TV ao Vivo com Som
         </div>
 
-        <!-- Player Horizontal com preenchimento total e sem bordas -->
+        <!-- Player Horizontal com Zoom Expandido (1.35) -->
         <div class="flex-1 h-full bg-black flex items-center justify-center relative overflow-hidden video-preenchimento">
             <div id="player-horizontal-container" class="w-full h-full flex items-center justify-center zoom-preenchimento absolute inset-0">
                 <div id="yt-player-tv" class="w-full h-full"></div>
