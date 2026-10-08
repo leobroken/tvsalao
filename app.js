@@ -54,10 +54,8 @@ onSnapshot(docRef, (docSnap) => {
         dadosGlobais = novosDados;
         renderizarPainel();
         
-        // Atualiza volumes em tempo real se a TV estiver aberta
         aplicarVolumesNosPlayers();
 
-        // Se a TV do salão estiver aberta e o canal ativo mudar, troca e toca na hora automaticamente!
         const viewTv = document.getElementById('view-tv');
         if (viewTv && !viewTv.classList.contains('hidden')) {
             if (playerTv && typeof playerTv.loadVideoById === 'function' && canalAntigo !== dadosGlobais.ativoHorizontal) {
@@ -65,6 +63,7 @@ onSnapshot(docRef, (docSnap) => {
                 setTimeout(() => {
                     playerTv.playVideo();
                     aplicarVolumesNosPlayers();
+                    aplicarRegraDeSomAtual();
                 }, 500);
             }
         }
@@ -81,12 +80,12 @@ async function salvarNoFirebase(dados) {
     }
 }
 
-// Funções para alterar e sincronizar os volumes
 window.alterarVolumeTv = function(valor) {
     dadosGlobais.volumeTv = parseInt(valor);
     const label = document.getElementById('label-vol-tv');
     if (label) label.innerText = `${valor}%`;
     salvarNoFirebase(dadosGlobais);
+    aplicarVolumesNosPlayers();
 };
 
 window.alterarVolumeProp = function(valor) {
@@ -94,26 +93,21 @@ window.alterarVolumeProp = function(valor) {
     const label = document.getElementById('label-vol-prop');
     if (label) label.innerText = `${valor}%`;
     salvarNoFirebase(dadosGlobais);
+    aplicarVolumesNosPlayers();
 };
 
 function aplicarVolumesNosPlayers() {
-    // 1. Aplica volume no player de TV
-    if (playerTv && typeof playerTv.setVolume === 'function') {
-        playerTv.setVolume(dadosGlobais.volumeTv !== undefined ? dadosGlobais.volumeTv : 100);
-        if (dadosGlobais.volumeTv > 0 && playerTv.isMuted && playerTv.isMuted()) {
-            playerTv.unMute();
-        } else if (dadosGlobais.volumeTv === 0 && playerTv.mute) {
-            playerTv.mute();
-        }
+    const volTv = dadosGlobais.volumeTv !== undefined ? dadosGlobais.volumeTv : 100;
+    const volProp = dadosGlobais.volumeProp !== undefined ? dadosGlobais.volumeProp : 100;
+
+    if (playerProp && typeof playerProp.setVolume === 'function') {
+        playerProp.setVolume(volProp);
     }
 
-    // 2. Aplica volume no player de propagandas (respeitando se a propaganda atual é muda ou com som)
-    if (playerProp && typeof playerProp.setVolume === 'function') {
-        playerProp.setVolume(dadosGlobais.volumeProp !== undefined ? dadosGlobais.volumeProp : 100);
-    }
+    // Reavalia a regra de som para garantir que os volumes e mutes fiquem corretos
+    aplicarRegraDeSomAtual();
 }
 
-// Expõe as funções globalmente para funcionarem nos botões HTML (onclick)
 window.mudarAba = function(aba) {
     const viewPainel = document.getElementById('view-painel');
     const viewTv = document.getElementById('view-tv');
@@ -259,7 +253,6 @@ window.salvarSequencia = function() {
 };
 
 function renderizarPainel() {
-    // Atualiza os sliders de volume na interface do painel
     const rangeTv = document.getElementById('range-vol-tv');
     const labelTv = document.getElementById('label-vol-tv');
     if (rangeTv && dadosGlobais.volumeTv !== undefined) {
@@ -274,7 +267,6 @@ function renderizarPainel() {
         if (labelProp) labelProp.innerText = `${dadosGlobais.volumeProp}%`;
     }
 
-    // Canais
     const containerCanais = document.getElementById('lista-canais');
     if (containerCanais) {
         containerCanais.innerHTML = dadosGlobais.canais.length === 0 ? '<p class="text-xs text-gray-500 italic">Nenhum canal.</p>' : '';
@@ -294,7 +286,6 @@ function renderizarPainel() {
         });
     }
 
-    // Biblioteca de Propagandas
     const containerBib = document.getElementById('lista-biblioteca-props');
     if (containerBib) {
         containerBib.innerHTML = dadosGlobais.bibliotecaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Nenhuma propaganda.</p>' : '';
@@ -311,7 +302,6 @@ function renderizarPainel() {
         });
     }
 
-    // Seletor Sequência
     const containerSeletor = document.getElementById('seletor-adicionar-sequencia');
     if (containerSeletor) {
         containerSeletor.innerHTML = dadosGlobais.bibliotecaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Cadastre propagandas acima.</p>' : '';
@@ -329,7 +319,6 @@ function renderizarPainel() {
         });
     }
 
-    // Sequência Atual
     const containerSeq = document.getElementById('lista-sequencia-atual');
     if (containerSeq) {
         containerSeq.innerHTML = dadosGlobais.sequenciaProps.length === 0 ? '<p class="text-xs text-gray-500 italic">Sequência vazia.</p>' : '';
@@ -348,18 +337,16 @@ function renderizarPainel() {
     }
 }
 
-// Inicialização dos Players via API do YouTube com suporte a volumes independentes
 function iniciarPlayersAPI() {
     if (playerTv) playerTv.destroy();
     if (playerProp) playerProp.destroy();
 
     const containerTv = document.getElementById('player-horizontal-container');
-    if (containerTv) containerTv.innerHTML = '<div id="yt-player-tv"></div>';
+    if (containerTv) containerTv.innerHTML = '<div id="yt-player-tv" class="w-full h-full"></div>';
 
     const containerProp = document.getElementById('player-vertical-container');
-    if (containerProp) containerProp.innerHTML = '<div id="yt-player-prop"></div>';
+    if (containerProp) containerProp.innerHTML = '<div id="yt-player-prop" class="w-full h-full"></div>';
 
-    // 1. Player TV ao Vivo (Horizontal)
     playerTv = new YT.Player('yt-player-tv', {
         height: '100%',
         width: '100%',
@@ -378,11 +365,11 @@ function iniciarPlayersAPI() {
                 event.target.unMute();
                 aplicarVolumesNosPlayers();
                 event.target.playVideo();
+                aplicarRegraDeSomAtual();
             }
         }
     });
 
-    // 2. Player Propagandas (Vertical)
     if (dadosGlobais.sequenciaProps.length > 0) {
         const idsPlaylist = dadosGlobais.sequenciaProps.map(p => p.id);
         
@@ -437,17 +424,31 @@ function aplicarRegraDeSomAtual() {
 
     const propAtual = dadosGlobais.sequenciaProps[indicePropAtual];
     const indicador = document.getElementById('status-audio-tv');
+    const volTv = dadosGlobais.volumeTv !== undefined ? dadosGlobais.volumeTv : 100;
+    const volProp = dadosGlobais.volumeProp !== undefined ? dadosGlobais.volumeProp : 100;
 
     if (propAtual && propAtual.comSom) {
-        if (playerTv && typeof playerTv.mute === 'function') playerTv.mute();
-        if (playerProp && typeof playerProp.unMute === 'function') playerProp.unMute();
+        // Propaganda com som: TV fica muda (volume 0 ou mute) e Propaganda toca com o volume definido
+        if (playerTv && typeof playerTv.mute === 'function') {
+            playerTv.mute();
+        }
+        if (playerProp && typeof playerProp.unMute === 'function') {
+            playerProp.unMute();
+            playerProp.setVolume(volProp);
+        }
         if (indicador) {
             indicador.innerText = `🎬 Propaganda com Som: ${propAtual.nome}`;
             indicador.classList.remove('hidden');
         }
     } else {
-        if (playerTv && typeof playerTv.unMute === 'function') playerTv.unMute();
-        if (playerProp && typeof playerProp.mute === 'function') playerProp.mute();
+        // Propaganda muda: TV volta a tocar com o volume configurado e Propaganda fica muda
+        if (playerTv && typeof playerTv.unMute === 'function') {
+            playerTv.unMute();
+            playerTv.setVolume(volTv);
+        }
+        if (playerProp && typeof playerProp.mute === 'function') {
+            playerProp.mute();
+        }
         if (indicador) {
             indicador.classList.add('hidden');
         }
